@@ -14,23 +14,25 @@ library(tictoc)
 # Import data ----
 #...............................................................
 
+rm(list = ls())
+
 dat = read.csv('./data/input_data/20240703_moving_window_formatted_for_tele_dat.csv')
 
 dat$timestamp = as.POSIXct(dat$timestamp, format = "%Y-%m-%d %H:%M:%S")
-period = 'all_data'
-tel.dat <- dat
-# tel.dat = dat[dat$year == "2022",]
+# period = 'all_data'
+# tel.dat <- dat
+tel.dat = dat[dat$year == "2022",]
 # tel.dat <- tel.dat[tel.dat$month_day >= '07-01' & tel.dat$month_day <= '07-31', ]
 
 data = as.telemetry(tel.dat, timeformat = '%Y-%m-%d %H:%M:%S', timezone = 'UTC')
 collars = tel.dat %>% distinct(individual.local.identifier)
 
-# data <- data[5:6]
+data <- data[5:6]
 
-#create directories to hold output:
-dir.create(paste0("./data/input_data/moving_window/", period, "/Fits"), recursive = TRUE)
-dir.create(paste0("./data/input_data/moving_window/", period, "/UDs"), recursive = TRUE)
-
+# #create directories to hold output:
+# dir.create(paste0("./data/input_data/moving_window/", period, "/Fits"), recursive = TRUE)
+# dir.create(paste0("./data/input_data/moving_window/", period, "/UDs"), recursive = TRUE)
+# 
 
 
 
@@ -53,7 +55,7 @@ window.HR <- function(DATA, dt, win) {
     AREAS_hi <- rep(NA,length(times))
     
     # 2. loop through each window segment ----
-    for(i in 1:length(times)) {
+    for(i in 360:length(times)) {
       #indicate what iteration the analysis is currently on
       print(paste((i),"of",length(times),"iterations. At window segment", 
                   format(as.POSIXct(times[i], origin = "1970-01-01", tz = "UTC"), "%Y-%m-%d"),
@@ -138,73 +140,6 @@ window.HR <- function(DATA, dt, win) {
     
     
     
-    # #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    # # 7. Plot all the results and save them as a png ----
-    # #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    # 
-    # fig.path <- file.path(Fig_Path,
-    #                       paste(DATA@info[1], ".png", sep = ""))
-    # 
-    # #Save the graphic device's output as a png
-    # png(file=fig.path,
-    #     type="cairo",
-    #     units = "in",
-    #     width = 6.81, height = 3,
-    #     pointsize = 10,
-    #     res = 600) #
-    # 
-    # #Set the par to plot all on same screen
-    # par(mfrow=c(1,2),
-    #     mgp = c(1.5, 0.5, 0),
-    #     oma=c(0,0,0,0),
-    #     mar=c(3,3,2,2),
-    #     cex.lab=1.2,
-    #     cex.main = 1,
-    #     family = "serif") 
-    # 
-    # # a) Plot the relocation data, coloured by time (i.e. plot position/location over time, coloured by time)
-    # #Create a function that scales colours between red and blue (a gradient to represent over time)
-    # rbPal <- colorRampPalette(c('#FF0000','#046C9A'))
-    # #Then create a variable that scales from red to blue between the two times (i.e. assign colors to each position based on the time)
-    # data$Col <- rbPal(nrow(data))[as.numeric(cut(as.numeric(data$timestamp), breaks = nrow(data)))]
-    # plot(data, 
-    #      col.grid = NA, 
-    #      pch = 20, 
-    #      cex = 0.2,
-    #      # col.DF = "#669543", 
-    #      col.UD = "#669543", 
-    #      col = data$Col, 
-    #      labels=FALSE)
-    # title(main = "a)", adj = 0)
-    # 
-    # # b) Plot of the range estimates over time
-    # plot(AREAS_ml ~ TIMES, 
-    #      pch=19, 
-    #      cex=1.25, 
-    #      ylim=c(0, max(AREAS_hi, na.rm = TRUE)), 
-    #      ylab = "Home Range Area", 
-    #      xlab = "Date", 
-    #      xaxt = "n")
-    # arrows(TIMES, 
-    #        AREAS_lo, 
-    #        TIMES, 
-    #        AREAS_hi, 
-    #        length = 0.05, angle = 90, code = 3)
-    # title(main = "b)", adj = 0)
-    # 
-    # # Adjust x-axis with month labels
-    # axis(1, 
-    #      at = seq(
-    #        from = min(TIMES, na.rm = TRUE), 
-    #        to = max(TIMES, na.rm = TRUE), 
-    #        by = "month"), 
-    #      labels = format(seq(
-    #        from = min(TIMES, na.rm = TRUE), 
-    #        to = max(TIMES, na.rm = TRUE), 
-    #        by = "month"), "%b"))
-    # 
-    # dev.off()
-    
     return(RESULTS)
 }
 
@@ -214,22 +149,26 @@ window.HR <- function(DATA, dt, win) {
 #.........................................................................
 
 #~ 12.5 hours mins
-tic()
+# with speed ~23hours
+# tic()
 RES <- list()
 for(i in 1:length(data)){
   
+  # RES[[i]] <- window.HR(data[[i]][1:30,],
   RES[[i]] <- window.HR(data[[i]],
                         dt = 1 %#% 'day', # what does %#% 'day' do?
                         win <- 3 %#% 'day')
   
-  save(RES, file = "./data/input_data/moving_window/Sliding_Window_20240705_noonan.Rda")
-  
+  # save(RES, file = "./data/input_data/moving_window/Sliding_Window_20240705_noonan.Rda")
+  save(RES, file = "./data/input_data/moving_window/test.Rda")
   
 }
-toc()
+# toc()
+
+RESULTS <- do.call(rbind, lapply(RES, as.data.frame))
 
 
-head(RES[[10]])
+# head(RES[[10]])
 
 
 
