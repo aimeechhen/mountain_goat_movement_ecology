@@ -50,9 +50,9 @@ names(collar_data)[names(collar_data) == 'animal'] <- "goat_id"
 # Import supplementary mountain goat info 
 goat_info <- read.csv("data/goat_info.csv")
 
-# Add collar_id to the dataframe
-collar_data <- merge(collar_data, goat_info[, c("goat_id", "collar_id")], by = "goat_id", all.x = TRUE)
-collar_data <- relocate(collar_data, collar_id, .after = goat_id)
+# Add goat_name and collar_id to the dataframe
+collar_data <- merge(collar_data, goat_info[, c("goat_name", "goat_id", "collar_id")], by = "goat_id", all.x = TRUE)
+collar_data <- relocate(collar_data, c(goat_name, collar_id), .after = goat_id)
 collar_data$collar_id = as.factor(collar_data$collar_id)
 
 # for temporal attributes
@@ -66,7 +66,8 @@ collar_data$month_day <- format(collar_data$timestamp, "%m-%d")
 collar_data$doy <- yday(collar_data$timestamp) #day of the year
 
 # Total fixes: 65452
-write.csv(collar_data, file = './data/collar_data/extracted_clean_collar_data_20240703.csv', row.names = FALSE)
+# write.csv(collar_data, file = './data/collar_data/extracted_clean_collar_data_20240703.csv', row.names = FALSE)
+write.csv(collar_data, file = './data/collar_data/extracted_clean_collar_data_20241123.csv', row.names = FALSE)
 
 
 
@@ -164,7 +165,7 @@ write.csv(collar_data, file = './data/collar_data/extracted_clean_collar_data_20
 #....................................................................
 
 #goat_03 cause of death: fall?; collar-id was reused (collar id: 30613)
-goat_03 <- collar_data[collar_data$collar_id == "30613" & collar_data$date <= "2019-08-24",] #224 fixes 223
+# goat_03 <- collar_data[collar_data$goat_name == "cliff" & collar_data$date <= "2019-08-24",] #224 fixes 223
 
 # Calculate the number of days goat03 was tracked for (2019-06-26 to 2019-08-24)
 collar_data[collar_data$date == "2019-06-26",] #day 177
@@ -173,24 +174,28 @@ collar_data[collar_data$date == "2019-08-24",] #day 236
 #59 days with 224 fixes
 
 # Drop goat_03 from dataset
-collar_data <- collar_data[!(collar_data$collar_id == "30613" & collar_data$date <= "2019-08-24"),] #65358 fixes
+collar_data <- collar_data[!(collar_data$goat_name == "cliff" & collar_data$date <= "2019-08-24"),] #65358 fixes
 
 #without goat_03 final dataset: 65358 fixes
 #without goat_03 final dataset with cleaning processing: 65229 fixes
 
 # visualise collar data without goat_03
-plot(x = collar_data$location.long, y = collar_data$location.lat)
+plot(x = collar_data$longitude, y = collar_data$latitude)
 
-#check the date range is correct:
+#check if the date range is correct:
 min(collar_data$date)
 max(collar_data$date)
 
-save(collar_data, file = "data/collar_data/collar_data_20240703.rda")
-load("data/collar_data/collar_data_20240703.rda")
+# save(collar_data, file = "data/collar_data/collar_data_20240703.rda")
+# load("data/collar_data/collar_data_20240703.rda")
+# save(collar_data, file = "data/collar_data/collar_data_20241123.rda")
+load("data/collar_data/collar_data_20241123.rda")
 
 
 
-#___________________________________________________________________
+#///////////////////////////////////////////
+# END
+#///////////////////////////////////////////
 
 
 

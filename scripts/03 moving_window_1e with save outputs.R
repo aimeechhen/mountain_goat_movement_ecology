@@ -34,6 +34,7 @@ library(terra)
 #Extract HR size and 95% CIs
 #Extract movement metrics
 #Extract centroid
+#Save outputs
 
 
 #...............................................................
@@ -74,6 +75,11 @@ tel.data = as.telemetry(dat, timeformat = '%Y-%m-%d %H:%M:%S', timezone = 'UTC')
 #...........................................
 # Habitat data ----
 
+slope = terrain(dem, "slope", units = 'degrees')
+# distance to escape was made by first by creating a raster of 0/1 of whether a pixel had a slope greater or less than a cutoff value (like 45°, or something like that). Then a proximity raster was created where each pixel represented a distance to those 1's (> 45°)
+# I can't remember how I derived the other one, whether it was some proximity function in terra, or in QGIS. Probably in QGIS since it's very easy.
+
+
 # Import rasters
 elevation <- rast('./data/rasters/elev_25m.tif')
 dist_escape <- rast('./data/rasters/dist_escape_25m.tif')
@@ -102,7 +108,7 @@ window.HR <- function(DATA, dt, win) {
   # DATA = tel.data
   tryCatch({
     # Generate start times for each 3-day segment
-    
+    #*************************(check because they may be overlapping if moving forward by a day?)
     # 1. Set up and generate the start time/time intervals window segment (win = 3 days) without overlapping segments, and empty lists to hold the results ----
     times <- seq(from = DATA$t[1], # t = Unix timestamp format
                  to = DATA$t[nrow(DATA)],  
@@ -121,9 +127,9 @@ window.HR <- function(DATA, dt, win) {
   diffusion_min = rep(NA, length(times))
   diffusion_est = rep(NA, length(times))
   diffusion_max = rep(NA, length(times))
-  speed_min = rep(NA, length(times))
-  speed_est = rep(NA, length(times))
-  speed_max = rep(NA, length(times))
+  speed_mean_min = rep(NA, length(times))
+  speed_mean_est = rep(NA, length(times))
+  speed_mean_max = rep(NA, length(times))
   mean_el = rep(NA, length(times))
   mean_dist_escape = rep(NA, length(times))
   mean_slope = rep(NA, length(times))
@@ -183,7 +189,7 @@ window.HR <- function(DATA, dt, win) {
           # calculate home range area
           AKDE <- akde(SUBSET, FIT)
           # calculate mean speed
-          SPEED <- speed(SUBSET, FIT, robust = TRUE, units = FALSE)
+          SPEED <- speed(object = SUBSET, CTMM = FIT, robust = TRUE, units = FALSE, cores = 8)
           
           
           # 4b. save analysis outputs ----
@@ -204,9 +210,9 @@ window.HR <- function(DATA, dt, win) {
           
           # Extract mean speed values (units = meters/sec) (time-averaged speed, proportional to distance travelled)
           # OU model causes 'Inf' because not enough data to estimate
-          speed_min[i] <- SPEED$CI[[1]]
-          speed_est[i] <- SPEED$CI[[2]]
-          speed_max[i] <- SPEED$CI[[3]]
+          speed_mean_min[i] <- SPEED$CI[[1]]
+          speed_mean_est[i] <- SPEED$CI[[2]]
+          speed_mean_max[i] <- SPEED$CI[[3]]
           
           # Extract movement metrics ----
           SUMMARY_FIT <- summary(FIT, units = FALSE)$CI
@@ -284,9 +290,9 @@ window.HR <- function(DATA, dt, win) {
                           diffusion_min,
                           diffusion_est,
                           diffusion_max,
-                          speed_min,
-                          speed_est,
-                          speed_max,
+                          speed_mean_min,
+                          speed_mean_est,
+                          speed_mean_max,
                           mean_el,
                           mean_dist_escape,
                           mean_slope,
@@ -345,241 +351,7 @@ END <- Sys.time()
 
 
 
-#_________________________________________________________________________
-# Moving window results
 
-# load saved results
-# load("./data/moving_window/moving_window_1d_movement_covariates_centroid_20240711.rda")
-load("./data/moving_window/moving_window_1e_save_outputs_20240720.rda")
-
-# turn a list (of elements/list(s)) into a dataframe then combine them into a single dataframe
-RESULTS <- do.call(rbind, lapply(RES, as.data.frame))
-
-
-# data carpentry
-RESULTS$date = as.Date(RESULTS$timestamp)
-# RESULTS$period = as.factor(RESULTS$period)
-RESULTS$year = year(RESULTS$timestamp)
-RESULTS$month = month(RESULTS$timestamp)
-RESULTS$day <- day(RESULTS$timestamp)
-RESULTS$doy <- yday(RESULTS$timestamp)
-RESULTS$month_day <- format(RESULTS$timestamp, format = "%m-%d")
-RESULTS <- relocate(RESULTS, c('date', 'year', 'month', 'day', 'doy', 'month_day'), .after = 'timestamp')
-
-# save moving window results dataframe
-# write.csv(RESULTS, './data/moving_window/moving_window_results_20240715.csv', row.names = FALSE)
-mw_dat <- read.csv('./data/moving_window/moving_window_results_20240715.csv')
-
-# data carpentry
-mw_dat$ID = as.factor(mw_dat$ID)
-mw_dat$timestamp = as.POSIXct(mw_dat$timestamp, format = "%Y-%m-%d %H:%M:%S")
-mw_dat$date = as.Date(mw_dat$date, "%Y-%m-%d")
-mw_dat$year <- as.numeric(mw_dat$year)
-mw_dat$month <- as.numeric(mw_dat$month)
-mw_dat$month_day = format(mw_dat$month_day, format = "%m-%d")
-mw_dat$day <- as.numeric(mw_dat$day)
-mw_dat$doy <- as.numeric(mw_dat$doy)
-
-
-#__________________________________________________________________
-# Plot moving window results ----
-
-# 1) Plot home range estimates over time (based on Ryan's code in the window.hr function)
-
-#Set the par to plot all on same screen
-par(mgp = c(1.5, 0.5, 0),
-    oma=c(0,0,0,0), 
-    mar=c(3,3,2,2), 
-    cex.lab=1.2, 
-    cex.main = 1, 
-    family = "serif")
-
-# Plot of the range estimates over time
-plot(mw_dat$hr_est ~ mw_dat$date, 
-     pch=19, 
-     cex=1.25, 
-     ylim=c(0, max(mw_dat$hr_est, na.rm = TRUE)), 
-     ylab = "Home Range Area", 
-     # xlab = "Date",
-     xlab = "",
-     xaxt = "n") # blocks x axis tick values
-# arrows(mw_dat$timestamp, 
-#        mw_dat$hr_min, 
-#        mw_dat$timestamp, 
-#        mw_dat$hr_max, 
-#        length = 0.05, angle = 90, code = 3)
-# title(main = "b)", adj = 0)
-
-# #Warning messages:
-# 1: In arrows(mw_dat$timestamp, mw_dat$hr_min, mw_dat$timestamp,  ... :
-#                zero-length arrow is of indeterminate angle and so skipped
-
-# #Warning is due to when hr_min = hr_max .-. causing zero-length arrows, tried filtering them out 
-# non_zero_arrows <- mw_dat$hr_min != mw_dat$hr_max
-# 
-# # and add arrows only for non-zero-length ranges but same warning/issue occurred so skipped it
-# arrows(mw_dat$timestamp[non_zero_arrows], 
-#        mw_dat$hr_min[non_zero_arrows], 
-#        mw_dat$timestamp[non_zero_arrows], 
-#        mw_dat$hr_max[non_zero_arrows], 
-#        length = 0.05, angle = 90, code = 3)
-
-# Adjust x-axis with custom month labels
-axis(1, 
-     at = seq(
-       from = as.Date(min(mw_dat$timestamp, na.rm = TRUE)), 
-       to = as.Date(max(mw_dat$timestamp, na.rm = TRUE)), 
-       by = "month"), 
-     labels = format(seq(
-       from = as.Date(min(mw_dat$timestamp, na.rm = TRUE)), 
-       to = as.Date(max(mw_dat$timestamp, na.rm = TRUE)), 
-       by = "month"), "%b-%y"), 
-     las = 2)  # Rotate labels vertically
-
-
-
-#__________________________________________________________________
-# Crater Creek wildfire time period ----
-
-#fire ignition date (i.e. fire start date): 2023-07-22
-#fire extinguished date (i.e. fire end date): unknown; .-. using end of fire season (2023-09-30) as end date as the fire was still burning but contained ('held') via news reports ~Sept 4&7, 2023 (and still burning Sept 17th?)
-
-fire_start <- '2023-07-22'
-fire_end <- '2023-09-30'
-
-# create a column based on if the window segment is during the wildfire or not
-mw_dat$fire <- ifelse(mw_dat$date >= fire_start & mw_dat$date <= fire_end, 1, 0) # 1 = yes, 0 = no
-
-# identify the period each window segment is in based before, during and post wildfire time period
-mw_dat$period <- NA
-mw_dat$period <- ifelse(mw_dat$date < fire_start, 'before',
-                        ifelse(mw_dat$date >= fire_start & mw_dat$date <= fire_end, 'during',
-                               'post'))
-
-
-
-#__________________________________________________________________
-# Moving window analysis ----
-
-#check for NA values
-anyNA(mw_dat$hr_est)
-#locate NA values
-na_hr <- mw_dat[!complete.cases(mw_dat$hr_est),] #24
-
-#calculate the mean total home range size across all window segments (convert m into km)
-round(mean(mw_dat$hr_est, na.rm = TRUE)/1000, 2)
-
-#calculate CIs of the mean total home range size across all window segments (convert m into km)
-round(mean(mw_dat$hr_min, na.rm = TRUE)/1000, 2)
-round(mean(mw_dat$hr_max, na.rm = TRUE)/1000, 2)
-
-
-#............................................................
-# Did home range size differ during a fire? ----
-
-library(lme4)
-
-#drop rows with NA values in hr_est
-mw_dat2 <- mw_dat[complete.cases(mw_dat$hr_est),] #24
-
-# home range size (response variable) = was continuous and strictly positive .-. gamma distribution and log link
-
-#test for significance in fire, compare model with and without fire as a variable
-fire_test <- glmer(hr_est ~ fire + (1|ID), family = Gamma('log'), 
-                   # weights = DOF_area,
-                   data = mw_dat2, na.action = "na.fail")
-
-fire_test2 <- glmer(hr_est ~ 1 + (1|ID), family = Gamma('log'), 
-                    # weights = DOF_area,
-                    data = mw_dat2, na.action = "na.fail")
-
-fire_test_results <- anova(fire_test, fire_test2)
-fire_test_pvalue <- round(fire_test_results$`Pr(>Chisq)`[2], 2)
-
-
-
-
-
-#............................................................
-# Did home range size differ between periods? ---- 
-
-#test for significance in period, compare model with and without period as a variable
-hr_test <- glmer(hr_est ~ period + (1|ID), family = Gamma('log'), 
-                     # weights = DOF_area,
-                     data = mw_dat2, na.action = "na.fail")
-
-hr_test2 <- glmer(hr_est ~ 1 + (1|ID), family = Gamma('log'), 
-                 # weights = DOF_area,
-                 data = mw_dat2, na.action = "na.fail")
-
-hr_test_results <- anova(hr_test, hr_test2)
-hr_test_pvalue <- round(hr_test_results$`Pr(>Chisq)`[2], 2)
-
-
-#number of home range entries in each period category
-table(mw_dat2$period)
-
-#calculate mean home range & home range based on period categories (convert m to km)
-round(mean(mw_dat2$hr_est[mw_dat2$period == "before"])/1000, 2)
-round(min(mw_dat2$hr_est[mw_dat2$period == "before"])/1000, 2)
-round(max(mw_dat2$hr_est[mw_dat2$period == "before"])/1000, 2)
-
-round(mean(mw_dat2$hr_est[mw_dat2$period == "during"])/1000, 2)
-round(min(mw_dat2$hr_est[mw_dat2$period == "during"])/1000, 2)
-round(max(mw_dat2$hr_est[mw_dat2$period == "during"])/1000, 2)
-
-round(mean(mw_dat2$hr_est[mw_dat2$period == "post"])/1000, 2)
-round(min(mw_dat2$hr_est[mw_dat2$period == "post"])/1000, 2)
-round(max(mw_dat2$hr_est[mw_dat2$period == "post"])/1000, 2)
-
-
-
-# 
-# #............................................................
-# # Did elevation differ between periods? ----
-# 
-# #test for significance in elevation, compare model with and without elevation as a variable
-# el_test <- glmer(mean_el ~ period + (1|ID), family = Gamma('log'), 
-#                  # weights = DOF_area,
-#                  data = mw_dat2, na.action = "na.fail")
-# 
-# el_test2 <- glmer(mean_el ~ 1 + (1|ID), family = Gamma('log'), 
-#                   # weights = DOF_area,
-#                   data = mw_dat2, na.action = "na.fail")
-# 
-# el_test_results <- anova(el_test, el_test2)
-# el_test_pvalue <- round(el_test_results$`Pr(>Chisq)`[2], 2)
-# 
-# 
-# 
-# #............................................................
-# # Did distance to escape terrain differ between periods? ----
-# 
-# #test for significance in distance to escape terrain, compare model with and without distance to escape terrain as a variable
-# escape_test <- glmer(mean_dist_escape ~ period + (1|ID), family = Gamma('log'), 
-#                      # weights = DOF_area,
-#                      data = mw_dat2, na.action = "na.fail")
-# 
-# escape_test2 <- glmer(mean_dist_escape ~ 1 + (1|ID), family = Gamma('log'), 
-#                       # weights = DOF_area,
-#                       data = mw_dat2, na.action = "na.fail")
-# 
-# escape_test_results <- anova(escape_test, escape_test2)
-# escape_test_pvalue <- round(escape_test_results$`Pr(>Chisq)`[2], 2)
-# 
-# 
-# 
-# #............................................................
-# # Did slope differ between periods? ----
-# 
-# #test for significance in slope, compare model with and without slope as a variable
-# slope_test <- glmer(mean_slope ~ period + (1|ID), family = Gamma('log'), 
-#                     # weights = DOF_area,
-#                     data = mw_dat2, na.action = "na.fail")
-# 
-# slope_test2 <- glmer(mean_slope ~ 1 + (1|ID), family = Gamma('log'), 
-#                      # weights = DOF_area,
-#                      data = mw_dat2, na.action = "na.fail")
-# 
-# slope_test_results <- anova(slope_test, slope_test2)
-# slope_test_pvalue <- round(slope_test_results$`Pr(>Chisq)`[2], 2)
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# END
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~
