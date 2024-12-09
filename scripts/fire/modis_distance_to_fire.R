@@ -5,29 +5,33 @@ library(sf)
 library(lubridate)
 library(ctmm)
 library(ggplot2)
+library(dplyr)
 
 rm(list = ls())
 
 # import data from 02_outlier_detection.r
-dat = read.csv('./data/input_data/20240703_moving_window_formatted_for_tele_dat.csv')
+# dat = read.csv('./data/input_data/20240703_moving_window_formatted_for_tele_dat.csv')
+
+# load collar data and shapefile
+source('./scripts/source/collar_data_and_shapefile.r')
+dat <- collar_data_sf
 dat <- dat[dat$year == '2023',]
 dat$timestamp = as.POSIXct(dat$timestamp, format = "%Y-%m-%d %H:%M:%S")
 dat$date = as.Date(dat$date, "%Y-%m-%d")
 
-# convert data into sf object
-dat_sf <- st_as_sf(dat, coords = c('location.long', 'location.lat'))
-# assign crs to collar data
-st_crs(dat_sf) <- 4326
+
+goat_info <- read.csv("data/goat_info.csv")
+goat_info <- goat_info[!goat_info$goat_name == "cliff",]
+dat <- merge(dat, goat_info[, c("goat_name", "goat_id")], by = "goat_id", all.x = TRUE)
+dat <- relocate(dat, c("goat_name", "goat_id"), .before = collar_id)
+dat <- dat[dat$date > "2023-07-21",]
 
 # import cropped fire data
-fire_data <- st_read("C:/Users/achhen/Desktop/nasa_fire/cathedral/modis_nrt/modis_nrt.shp")
-# format time from HHMM into to HH:MM:SS
-fire_data$ACQ_TIME <- format(strptime(fire_data$ACQ_TIME, format = "%H%M"), format = "%H:%M:%S")
-# combine date and time into timestamp
-fire_data$timestamp <- as.POSIXct(paste(fire_data$ACQ_DATE, fire_data$ACQ_TIME), format = "%Y-%m-%d %H:%M:%S")
+source('./scripts/source/nasa fire prep.r')
+nasa_fire <- rbind(modis, viirs_suomi)
+nasa_fire <- rbind(nasa_fire, viirs_noaa)
 
-#set crs for collar data
-dat_sf <- st_transform(dat_sf, st_crs(fire_data))
+
 
 
 
@@ -51,9 +55,9 @@ dat$dist_to_fire <- NA
 
 
 #loop through every collar point
-for (i in 1:nrow(dat_sf)) {
+for (i in 1:nrow(dat)) {
   # extract a collar point from data
-  collar_point <- dat_sf[i,]
+  collar_point <- dat[i,]
   # extract timestamp of that collar point
   collar_timestamp <- collar_point$timestamp
   # message("Processing GPS collar point ", i, " with timestamp ", collar_timestamp)
@@ -63,7 +67,7 @@ for (i in 1:nrow(dat_sf)) {
   end_time <- collar_timestamp + time_window
   
   # extract fire point event within the time window
-  fire_point <- fire_data[fire_data$timestamp >= start_time & fire_data$timestamp <= end_time,]
+  fire_point <- nasa_fire[nasa_fire$timestamp >= start_time & nasa_fire$timestamp <= end_time,]
   # message("Number of fire points for ", collar_timestamp, " time window: ", nrow(fire_point))
   dat$n_fire_points[i] <- as.numeric(nrow(fire_point))
   
@@ -97,7 +101,7 @@ for (i in 1:nrow(dat_sf)) {
 
 str(dat)
 
-write.csv(dat, "./data/input_data/20240729_dist_to_fire_dat_modis.csv")
+# write.csv(dat, "./data/input_data/20240729_dist_to_fire_dat_modis.csv")
 
 
 
@@ -106,7 +110,7 @@ write.csv(dat, "./data/input_data/20240729_dist_to_fire_dat_modis.csv")
 # Plot ----
 #.....................................................................
 
-dat <- read.csv("./data/input_data/20240729_dist_to_fire_dat.csv")
+# dat <- read.csv("./data/input_data/20240729_dist_to_fire_dat.csv")
 
 
 dat$timestamp = as.POSIXct(dat$timestamp, format = "%Y-%m-%d %H:%M:%S")
@@ -119,8 +123,8 @@ dat2 <- dat[dat$fire_event == "yes",]
 ggplot(data = dat2) +
   geom_line(aes(x = date, y = dist_to_fire)) +
   geom_point(aes(x = date, y = dist_to_fire)) +
-  facet_wrap(~ individual.local.identifier, scales = "fixed", #sorted by ID & set axis so theyre the same for every plot 
-             ncol = 2, nrow = 5) +  
+  facet_wrap(~ goat_name, scales = "fixed", #sorted by ID & set axis so theyre the same for every plot 
+             ncol = 1, nrow = 6) +  
   labs(x = 'Date',
        y = 'Distance to fire (m)') +
   scale_x_date(date_breaks = "1 day", date_labels = "%b-%d") +
@@ -136,25 +140,27 @@ dat2$dist_to_fire_km <- (dat2$dist_to_fire)/1000
 
 ggplot(data = dat2) +
   geom_line(aes(x = date, y = dist_to_fire_km)) +
-  facet_wrap(~ individual.local.identifier, scales = "fixed", #sorted by ID & set axis so theyre the same for every plot 
-             ncol = 2, nrow = 5) +  
+  geom_point(aes(x = date, y = dist_to_fire_km)) +
+  facet_wrap(~ goat_name, scales = "fixed", #sorted by ID & set axis so theyre the same for every plot 
+             ncol = 1, nrow = 6) +  
   labs(x = 'Date',
        y = 'Distance to fire (km)') +
-  scale_x_date(date_breaks = "1 week", date_labels = "%b-%d") +
+  scale_x_date(date_breaks = "1 day", date_labels = "%b-%d") +
   theme_bw() +
   theme(panel.grid.major = element_blank(), #removes horizontal gridlines
         panel.grid.minor = element_blank(), #removes vertical gridlines
         axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
 
 
+ggsave(last_plot(), filename = "./figures/dist_to_fire_boundary_area_nasa.png", bg = "transparent",
+       width = 12, height = 9, units = "in", dpi = 600)
 # 
-# 
-# # Distance to fire and elevation
+# Distance to fire and elevation
 # 
 # ggplot(data = dat2) +
 #   geom_point(aes(x = elevation, y = dist_to_fire)) +
-#   facet_wrap(~ individual.local.identifier, scales = "fixed", #sorted by ID & set axis so theyre the same for every plot 
-#              ncol = 2, nrow = 5) +  
+#   facet_wrap(~ goat_name, scales = "fixed", #sorted by ID & set axis so theyre the same for every plot
+#              ncol = 2, nrow = 5) +
 #   labs(x = 'Elevation',
 #        y = 'Distance to fire (m)')# +
 #   # scale_x_date(date_breaks = "1 day", date_labels = "%b-%d") +
