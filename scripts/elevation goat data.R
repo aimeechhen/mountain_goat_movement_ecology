@@ -7,6 +7,8 @@ library(raster)
 library(tidyverse)
 
 load("data/collar_data/collar_data_20240703.rda")
+elev_25m = rast('data/rasters/elev_25m.tif')
+
 
 #Convert gps coordinates to sf object, spatial data points
 coord_sf <- st_as_sf(collar_data, coords = c("longitude", "latitude"))
@@ -294,3 +296,31 @@ ggplot(data = dem_data_sorted) +
 
 
 
+
+
+
+#...........................................................
+# extract using raster ----
+
+
+load("data/collar_data/collar_data_20240703.rda")
+elev_25m = rast('data/rasters/elev_25m.tif')
+
+
+#Convert gps coordinates to sf object, spatial data points
+coord_sf <- st_as_sf(collar_data, coords = c("longitude", "latitude"))
+#Retrieve coordinate reference system (CRS) and set the CRS to a geographic coordinate system (e.g., WGS 84)
+st_crs(coord_sf) <- st_crs("+proj=longlat +datum=WGS84")
+#convert sf into spatvector object to be able to extract values
+locations <- vect(coord_sf)
+
+# reproject crs
+elev <- project(elev_25m, "EPSG:4326")
+
+# extract values
+el_values <- extract(elev, locations)[,2]
+# get elevation range based on collar data coordinates
+range(el_values)
+
+#Get the bounding box of the goat data
+bbox <- st_bbox(coord_sf)
