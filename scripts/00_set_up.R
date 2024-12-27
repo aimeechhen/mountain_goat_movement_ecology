@@ -35,6 +35,41 @@ collar_data$date = as.Date(collar_data$date, "%Y-%m-%d")
 goat_info <- read.csv("data/goat_info.csv")
 
 
+# full data
+load("data/movement_model/goat_fits_20241107.rda")
+load("data/home_range/goat_akdes_20241217.rda")
+load("./data/movement_model/goat_speed_mean_20241226.rda")
+load("./data/movement_model/goat_speeds_insta_20241226.rda")
+
+#results
+load("data/home_range/hr_size_20241226.rda")
+load("./data/movement_model/goat_fits_summary_20241226.rda")
+
+#filepaths
+"data/home_range/UD"
+("data/home_range/shp"
+
+
+# fire goats
+load("data/movement_model/fire_goat_fits_20241217.rda")
+load("data/home_range/fire_goat_akdes_20241217.rda")
+load(file = "./data/movement_model/fire_goat_speed_mean_20241217.rda")
+load(file = "./data/movement_model/fire_goat_speeds_insta_20241217.rda")
+
+#results
+load("./data/home_range/fire_goat_hr_movement_results_df_20241219.rda")
+dat_shp = st_read(dsn = './data/home_range/merged_95_HR_shp')
+load("./data/rsf/fire_goats_rsf_20241220.rda")
+
+# file paths
+shp_path <- file.path("data/home_range/fire_goat/shp", paste0(name, ".shp"))
+UD_file <- file.path("data/home_range/fire_goat/UD", paste0(names(AKDES)[i], ".tif"))
+folder_path <- "data/home_range/fire_goat/shp"
+
+
+# load spatial covariate data (packedspatraster or spatraster object)
+elev_25m = rast('data/rasters/elev_25m.tif')
+dist_escape_25m = rast('data/rasters/dist_escape_25m.tif')
 
 
 
