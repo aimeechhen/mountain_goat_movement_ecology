@@ -18,6 +18,7 @@ library(tictoc)
 library(sf)
 library(raster)
 library(terra)
+library(beepr)
 
 #______________________________________________________
 #03.ctmm_moving_window.R
@@ -42,12 +43,13 @@ library(terra)
 #...............................................................
 
 rm(list = ls())
+# 
+# load("data/collar_data/collar_data_20240703.rda")
+load("data/collar_data/collar_data_20241123.rda")
 
-load("data/collar_data/collar_data_20240703.rda")
 
 #format names to match required for ctmm based on Movebank critera:
-dat = plyr::rename(collar_data, c('collar_id' = 'individual.local.identifier',
-                                   # 'date_time' = 'timestamp', 
+dat <- plyr::rename(collar_data, c('goat_name' = 'individual.local.identifier',
                                    'latitude' = 'location.lat', 
                                    'longitude' = 'location.long'))
 
@@ -64,13 +66,7 @@ dat$timestamp = as.POSIXct(dat$timestamp, format = "%Y-%m-%d %H:%M:%S")
 tel.data = as.telemetry(dat, timeformat = '%Y-%m-%d %H:%M:%S', timezone = 'UTC')
 # collars = dat %>% distinct(individual.local.identifier)
 
-# tel.data <- tel.data[1:2]
-# 
-# dt = 1 %#% 'day' # %#% converts it into days (si units)
-# win <- 3 %#% 'day'
-# # tel.data <- tel.data[[1]]
-# i <- 1
-# DATA = tel.data
+
 
 #...........................................
 # Habitat data ----
@@ -93,16 +89,34 @@ slp <- project(slope, "EPSG:4326")
 # some collars within each period cause the script to crash if data is missing, this modified function code corrects for it without having to remove the collar
 # due to the missing data, plotting section has been taken out and done separately after, plotting code has been modified to handle missing data
 
-#create directories to hold output:
-dir.create(paste0("./data/input_data/moving_window/", "/Fits_20240719"), recursive = TRUE)
-dir.create(paste0("./data/input_data/moving_window/", "/UDs_20240719"), recursive = TRUE)
+# #create directories to hold output:
+# dir.create(paste0("./data/moving_window/", "/Fits_20240719"), recursive = TRUE)
+# dir.create(paste0("./data/moving_window/", "/UDs_20240719"), recursive = TRUE)
+# # Set results directory
+# mod_path = paste0(getwd(), "/data/moving_window/", '/Fits_20240719')
+# UD_path = paste0(getwd(), "/data/moving_window/", '/UDs_20240719')
+
+dir.create(paste0("./data/moving_window/", "/Fits_20241217"), recursive = TRUE)
+dir.create(paste0("./data/moving_window/", "/UDs_20241217"), recursive = TRUE)
 # Set results directory
-mod_path = paste0(getwd(), "/data/input_data/moving_window/", '/Fits_20240719')
-UD_path = paste0(getwd(), "/data/input_data/moving_window/", '/UDs_20240719')
+mod_path = paste0(getwd(), "/data/moving_window/", '/Fits_20241217')
+UD_path = paste0(getwd(), "/data/moving_window/", '/UDs_20241217')
+
+
+
 
 #...............................................................
 # window.hr function ----
 #...............................................................
+
+# test window
+tel.data <- tel.data[1:2]
+dt = 1 %#% 'day' # %#% converts it into days (si units)
+win <- 3 %#% 'day'
+tel.data <- tel.data[[1]]
+i <- 1
+DATA = tel.data
+
 
 window.HR <- function(DATA, dt, win) {
   # DATA = tel.data
@@ -141,7 +155,7 @@ window.HR <- function(DATA, dt, win) {
     #indicate what iteration the analysis is currently on
     print(paste((i),"of",length(times),"iterations. At window segment", 
                 format(as.POSIXct(times[i], origin = "1970-01-01", tz = "UTC"), "%Y-%m-%d"),
-                "for Collar ID:", DATA@info[1]))
+                "for mountain goat:", DATA@info[1]))
     
     # 3. subset data within window segment ----
     SUBSET <- DATA[times[i] <= DATA$t & DATA$t <= times[i] + win,] # +win means window size i.e. 3 days
@@ -330,7 +344,7 @@ for(i in 1:length(tel.data)){
   
   # RES[[i]] <- window.HR(data[[i]][1:30,],
   RES[[i]] <- window.HR(tel.data[[i]],
-                        dt = 1 %#% 'day', # what does %#% 'day' do?
+                        dt = 1 %#% 'day', # what does %#% 'day' do? uses ctmm package, set unit as
                         win <- 3 %#% 'day')
   
   # save(RES, file = "./data/input_data/moving_window/Sliding_Window_20240705_noonan.Rda")
@@ -338,12 +352,12 @@ for(i in 1:length(tel.data)){
   # save(RES, file = "./data/input_data/moving_window/moving_window_1c_movement_covariates_20240711.rda")
   # save(RES, file = "./data/input_data/moving_window/moving_window_1d_movement_covariates_centroid_20240711.rda")
   
-  save(RES, file = "./data/input_data/moving_window/moving_window_1e_save_outputs_20240720.rda")
+  save(RES, file = "./data/moving_window/moving_window_20241217.rda")
 }
 
 toc()
 END <- Sys.time()
-
+beep(8)
 # Warning messages:
 #   1: In speed.ctmm(CTMM, data = object, t = t, level = level,  ... :
 #                      Movement model is fractal.
