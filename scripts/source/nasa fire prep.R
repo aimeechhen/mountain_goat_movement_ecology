@@ -6,9 +6,9 @@ library(sf)
 
 
 # import cropped nasa fire data
-modis <- st_read("C:/Users/achhen/Desktop/nasa_fire/modis_cropped/modis_cropped.shp")
-viirs_suomi <- st_read("C:/Users/achhen/Desktop/nasa_fire/viirs_suomi_cropped/viirs_suomi_cropped.shp")
-viirs_noaa <- st_read("C:/Users/achhen/Desktop/nasa_fire/viirs_noaa_cropped/viirs_noaa_cropped.shp")
+modis <- st_read("data/fire/firms/modis_cropped/modis_cropped.shp")
+viirs_suomi <- st_read("data/fire/firms/viirs_suomi_cropped/viirs_suomi_cropped.shp")
+viirs_noaa <- st_read("data/fire/firms/viirs_noaa_cropped/viirs_noaa_cropped.shp")
 
 
 

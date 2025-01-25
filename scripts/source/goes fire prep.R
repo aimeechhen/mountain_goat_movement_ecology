@@ -12,8 +12,8 @@ library(stringr)
 
 
 # Set folder path where the files are located
-folder_path <- 'C:/Users/achhen/Desktop/NOAA/GOES/18/FDCF/fire_pixel_point/2023'
-# folder_path <- 'C:/Users/achhen/Desktop/NOAA/GOES/18/FDCF/fire_pixel_boundary/2023'
+# folder_path <- 'C:/Users/achhen/Desktop/NOAA/GOES/18/FDCF/fire_pixel_point/2023'
+folder_path <- 'C:/Users/achhen/Desktop/NOAA/GOES/18/FDCF/fire_pixel_boundary/2023b'
 # folder_path <- 'C:/Users/achhen/Desktop/NOAA/GOES/18/FDCF/fire_pixel_boundary_outline/2023/'
 # Load .shp, .tif etc files within a folder including all the subfolders
 shp_files <- list.files(path = folder_path, pattern = "\\.shp$", recursive = TRUE, full.names = TRUE)
