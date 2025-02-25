@@ -5,10 +5,14 @@
 
 data/
 figures/
+writing/
+CFSDB/
+
+scripts/RSF_SSF_iSSA_resources/
 
 scripts/archived
 scripts/data_download_import
-scripts/other scripts
+scripts/other_scripts
 scripts/Ryan
 
 scripts/fire/archived
