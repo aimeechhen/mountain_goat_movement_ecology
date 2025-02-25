@@ -7,16 +7,31 @@ library(ggplot2)
 library(gridExtra)
 library(tictoc)
 library(beepr)
+library(lubridate)
 
 
 # 1) Data prep ----
 
 # collar data
 load("data/collar_data/collar_data_20241123.rda")
+# new collar data
+load("data/collar_data/new_collar_data_20250218.rda")
+str(new_collar)
+
 
 # subset to fire goats
-goats <- c("kid_rock", "toats_mcgoats", "goatzilla", "the_goatmother", "vincent_van_goat", "rocky")
-fire_goats <- collar_data[collar_data$goat_name %in% goats,] # 43941 obs
+# goats <- c("kid_rock", "toats_mcgoats", "goatzilla", "the_goatmother", "vincent_van_goat", "rocky")
+goats <- c("goatzilla", "selena_goatmez", "the_goatmother", "goatileo", "toats_mcgoats", "vincent_van_goat")
+
+
+
+
+
+
+
+# fire_goats <- collar_data[collar_data$goat_name %in% goats,] # 43941 obs
+fire_goats <- new_collar
+
 
 # Define the wildfire date range
 # July 22 to October 26
@@ -30,12 +45,55 @@ fire_end <- "10-26"
 #subset goat data based on the date range of the crater creek wildfire across all years
 fire_goats <- fire_goats[fire_goats$month_day >= fire_start & fire_goats$month_day <= fire_end, ] #10376 obs
 
+# ## determine the sampling intervals of the gps fixes ----
+# library(amt)
+# # convert to track_xyz object (amt object)
+# fg_amt <- make_track(fire_goats, 
+#                  .x = longitude,             # x-coordinates (projected)
+#                  .y = latitude,             # y-coordinates (projected)
+#                  .t = timestamp,     # timestamp column in POSIXct format
+#                  crs = 4326,        # Assuming UTM Zone 10N (adjust if necessary)
+#                  all_cols = TRUE     # Retain all other columns
+# )
+# 
+# 
+# fix_rate <- data.frame()
+# 
+# for (i in goats) {
+#   # Subset to single animal
+#   goat <- fg_amt %>% 
+#     filter(goat_name == i) %>%  # Subset to 1 animal
+#     arrange(t_)                   # Reorder in ascending order
+#   # find the sampling rate
+#   rate <- as.data.frame(summarize_sampling_rate(goat))
+#   
+#   # Round the first 7 columns to 2 decimal places
+#   rate[,1:7] <- round(rate[,1:7], 2)
+#   
+#   # Add goat name
+#   rate$goat_name <- i
+#   fix_rate <- rbind(fix_rate, rate)
+# }
+# 
+# fix_rate
+
+
+# determine if sampling rate changed each year?
+
+
+
+
+
+
+#..................................................................
+
+
 #format names to match required for ctmm based on Movebank critera:
 # create a column 
-fire_goats$individual.local.identifier <- paste(fire_goats$goat_name, fire_goats$year, sep = "_")
+fire_goats$individual.local.identifier <- paste(fire_goats$collar_id, fire_goats$year, sep = "_")
 # format names to match
 fire_goats <- plyr::rename(fire_goats, c('latitude' = 'location.lat', 
-                           'longitude' = 'location.long'))
+                                         'longitude' = 'location.long'))
 
 #Convert to telemetry
 tel_data <- as.telemetry(fire_goats, mark.rm = TRUE)
@@ -69,7 +127,7 @@ END <- Sys.time()
 
 dir.create("data/movement_model/", recursive = TRUE, showWarnings = TRUE)
 # save(FITS,file="data/movement_model/fire_goat_fits_20241217.rda")
-load("data/movement_model/fire_goat_fits_20241217.rda")
+load("data/movement_model/fire_goat_fits_20241224.rda")
 
 
 
@@ -133,7 +191,7 @@ for (name in names(AKDES)) {
 
 
 
-#.....................................................
+#___________________________________________________________________________
 # 4) Estimate various speed types ----
 
 SPEED_MEAN <- list()
@@ -181,20 +239,24 @@ load(file = "./data/movement_model/fire_goat_speeds_insta_20241217.rda")
 
 
 
+#__________________________________________________________
+# 5) bls ----
+
+#calculate the bls for a specified window
 
 
-#_______________________________________________________________________________
-# prep and build results dataframe ----
 
-hr_results <- data.frame(individual.local.identifier = names(FITS))
-# extract the goat name from individual.local.identifier, i.e. drop the "_year" portion
-hr_results$goat_name <- gsub("_[0-9]{4}$", "", hr_results$individual.local.identifier)
-# extract the year, i.e. last 4 digits after the _
-hr_results$year <- gsub(".*_([0-9]{4})$", "\\1", hr_results$individual.local.identifier)
-# add collar_id column, match them based on goat_name
-hr_results$collar_id <- collar_data$collar_id[match(hr_results$goat_name, collar_data$goat_name)]
-hr_results$goat_id <- collar_data$goat_id[match(hr_results$goat_name, collar_data$goat_name)]
-hr_results <- hr_results[, c("goat_name", "goat_id", "collar_id", "year", "individual.local.identifier")]
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -238,20 +300,36 @@ summary_outputs
 
 
 
+#_______________________________________________________________________________
+# prep and build results dataframe ----
+
+fg_results <- data.frame(individual.local.identifier = names(FITS))
+# extract the goat name from individual.local.identifier, i.e. drop the "_year" portion
+fg_results$goat_name <- gsub("_[0-9]{4}$", "", fg_results$individual.local.identifier)
+# extract the year, i.e. last 4 digits after the _
+fg_results$year <- gsub(".*_([0-9]{4})$", "\\1", fg_results$individual.local.identifier)
+# add collar_id column, match them based on goat_name
+fg_results$collar_id <- collar_data$collar_id[match(fg_results$goat_name, collar_data$goat_name)]
+fg_results$goat_id <- collar_data$goat_id[match(fg_results$goat_name, collar_data$goat_name)]
+fg_results <- fg_results[, c("goat_name", "goat_id", "collar_id", "year", "individual.local.identifier")]
+
+
 #..................................................
 ## 1. Get movement model that was best fit ----
-model_type <- data.frame()
+# model_type <- data.frame()
+# 
+# for (i in 1:length(FITS)) {
+#   summary <- summary(FITS[[i]], units = FALSE)$name
+#   model_type <- rbind(model_type, summary)
+# }
+# names(model_type)[1] <- "movement_model"
+# 
+# # add to results df
+# fg_results <- cbind(fg_results, model_type)
 
 for (i in 1:length(FITS)) {
-  summary <- summary(FITS[[i]])$name
-  model_type <- rbind(model_type, summary)
+  fg_results$movement_model[i] <- summary(FITS[[i]], units = FALSE)$name
 }
-names(model_type)[1] <- "movement_model"
-
-# add to results df
-hr_results <- cbind(hr_results, model_type)
-
-
 
 
 
@@ -260,13 +338,13 @@ hr_results <- cbind(hr_results, model_type)
 ## 2. get mean home range size ----
 # i.e. extract AKDE UD values using the meta() from ctmm 
 
-i <- 1
+# i <- 1
 
 hr_size <- data.frame()
 
 for (i in 1:length(AKDES)) {
   # get hr size 
-  hr <- as.data.frame(ctmm::meta(AKDES[i]))
+  hr <- as.data.frame(ctmm::meta(AKDES[i])) # not using SI units (SI units = m^2), currently all came out as km²
   # subset to hr size row only
   hr <- hr[1,]
   # add to hr_size df
@@ -282,7 +360,7 @@ names(hr_size)[3] <- "mean_hr_max_km2"
 rownames(hr_size) <- NULL
 
 # add to results df
-hr_results <- cbind(hr_results, hr_size)
+fg_results <- cbind(fg_results, hr_size)
 
 
 
@@ -332,7 +410,7 @@ save(hr_size_yearly, file = "data/home_range/fire_goat_hr_size_yearly_20241217.r
 # #loop through each object in the AKDE list
 # for (i in 1:length(AKDES)) {
 #   #extract the home range area statistics summary
-#   summary <- as.data.frame(summary(AKDES[[i]])$CI)
+#   summary <- as.data.frame(summary(AKDES[[i]], units = FALSE)$CI)
 #   summary$collar_id <- names(AKDES[i])
 #   #bind the summary to the dataframe
 #   HR_size <- rbind(HR_size, summary)
@@ -347,19 +425,22 @@ save(hr_size_yearly, file = "data/home_range/fire_goat_hr_size_yearly_20241217.r
 #...............................................................................
 ## 3. Get movement models degrees of freedom ----
 
+# units = unitless
+
 DOF_results <- data.frame()
 
 for (i in 1:length(FITS)) {
-  summary <- summary(FITS[[i]])$DOF
+  summary <- summary(FITS[[i]], units = FALSE)$DOF
   DOF_results <- rbind(DOF_results, summary)
 }
+
 names(DOF_results)[1] <- "DOF_mean"
 names(DOF_results)[2] <- "DOF_area"
 names(DOF_results)[3] <- "DOF_diffusion"
 names(DOF_results)[4] <- "DOF_speed"
 
 # add to results df
-hr_results <- cbind(hr_results, DOF_results)
+fg_results <- cbind(fg_results, DOF_results)
 
 
 
@@ -367,42 +448,33 @@ hr_results <- cbind(hr_results, DOF_results)
 #................................................................................
 ## 4. Get diffusion estimates ----
 
+# SI units = m^2/s
+
 diffusion <- data.frame()
 
 for (i in seq_along(FITS)) {
-  summary <- as.data.frame(summary(FITS[[i]])$CI)
+  summary <- as.data.frame(summary(FITS[[i]], units = FALSE)$CI)
   results <- summary[grepl("diffusion", row.names(summary)),]
   diffusion <- rbind(diffusion, results)
 }
-# inspect if all the units are the same 
+# inspect if all the units are the same before adding to results dataframe
 diffusion
 
 # theyre not all the same -> need to correct and convert
 # units = FALSE removes the units that FITS has assigned and then by default it is in m^2/second 
 #Get diffusion values (units = square meters/second)
-diffusion_results <- data.frame(
-  diffusion_min_m2_s = numeric(length(FITS)),
-  diffusion_est_m2_s = numeric(length(FITS)),
-  diffusion_max_m2_s = numeric(length(FITS))
-)
 
+# units are consistent, add to results dataframe
 for (i in seq_along(FITS)) {
   # Check if "diffusion (square meters/second)" is present in the row names
   if ("diffusion (square meters/second)" %in% row.names(summary(FITS[[i]], units = FALSE)$CI)) {
-    # Update the corresponding row in the data frame
-    diffusion_results[i, "diffusion_min_m2_s"] <- summary(FITS[[i]], units = FALSE)$CI["diffusion (square meters/second)", 1]
-    diffusion_results[i, "diffusion_est_m2_s"] <- summary(FITS[[i]], units = FALSE)$CI["diffusion (square meters/second)", 2]
-    diffusion_results[i, "diffusion_max_m2_s"] <- summary(FITS[[i]], units = FALSE)$CI["diffusion (square meters/second)", 3]
+    # Update the corresponding row in the data frame and convert units fom m^2/s to km^2/day
+    fg_results[i, "diffusion_min_km2_day"] <- summary(FITS[[i]], units = FALSE)$CI["diffusion (square meters/second)", 1] * 0.0864
+    fg_results[i, "diffusion_est_km2_day"] <- summary(FITS[[i]], units = FALSE)$CI["diffusion (square meters/second)", 2] * 0.0864
+    fg_results[i, "diffusion_max_km2_day"] <- summary(FITS[[i]], units = FALSE)$CI["diffusion (square meters/second)", 3] * 0.0864
   }
 }
 
-# Convert m^2/second into km^2/day and create new columns for them
-diffusion_results$diffusion_min_km2_day <- diffusion_results$diffusion_min_m2_s * 0.0864
-diffusion_results$diffusion_est_km2_day <- diffusion_results$diffusion_est_m2_s * 0.0864
-diffusion_results$diffusion_max_km2_day <- diffusion_results$diffusion_max_m2_s * 0.0864
-
-# add to results df
-hr_results <- cbind(hr_results, diffusion_results)
 
 
 
@@ -411,32 +483,50 @@ hr_results <- cbind(hr_results, diffusion_results)
 ## 5. Get tau p estimates (position) ----
 # OU-mini f Tau isnt separated into Tau position/tau velocity, it cannot distinguish between velocity and auto-corr (auto-corr position and auto-corr velocity, model is saying they're just going straight)
 
+# SI units = seconds
+
 ### 4. Get tau p estimates----
 tau_p <- data.frame()
 
 for (i in seq_along(FITS)) {
   # SPEED_MEAN[i]
-  summary <- as.data.frame(summary(FITS[[i]])$CI)
+  summary <- as.data.frame(summary(FITS[[i]], units = FALSE)$CI)
   results <- summary[grepl("position", row.names(summary)),]
   tau_p <- rbind(tau_p, results)
 }
-# inspect if all the units are the same 
+# inspect if all the units are the same before adding to df
 tau_p
-# some are in hours and mostly in days, so convert the ones with hour units into day units
-tau_p[grep("hours", rownames(tau_p)), ] <- tau_p[grep("hours", rownames(tau_p)), ] / 24
-# reinspect
-tau_p
-# looks much better
+# # some are in hours and mostly in days, so convert the ones with hour units into day units
+# tau_p[grep("hours", rownames(tau_p)), ] <- tau_p[grep("hours", rownames(tau_p)), ] / 24
+# # reinspect
+# tau_p
+# # looks much better
 
-# if theyre all the same then rename the columns and drop the rowname
-names(tau_p)[1] <- "tau_p_min_days"
-names(tau_p)[2] <- "tau_p_est_days"
-names(tau_p)[3] <- "tau_p_max_days"
-rownames(tau_p) <- NULL
+# units are consistent, add to results dataframe
+for (i in seq_along(FITS)) {
+  # Check if "τ[position] (seconds)" is present in the row names
+  if ("τ[position] (seconds)" %in% rownames(summary(FITS[[i]], units = FALSE)$CI)) {
+    # Update the corresponding row in the data frame and convert units from seconds to days
+    fg_results[i, "tau_p_min_day"] <- summary(FITS[[i]], units = FALSE)$CI["τ[position] (seconds)", 1] / 86400
+    fg_results[i, "tau_p_est_day"] <- summary(FITS[[i]], units = FALSE)$CI["τ[position] (seconds)", 2] / 86400
+    fg_results[i, "tau_p_max_day"] <- summary(FITS[[i]], units = FALSE)$CI["τ[position] (seconds)", 3] / 86400
+  }
+}
 
-# add to results df
-hr_results <- cbind(hr_results, tau_p)
-
+# 
+# # convert seconds to days
+# tau_p <- tau_p / 86400
+# tau_p
+# 
+# # if theyre all the same then rename the columns and drop the rowname
+# names(tau_p)[1] <- "tau_p_min_days"
+# names(tau_p)[2] <- "tau_p_est_days"
+# names(tau_p)[3] <- "tau_p_max_days"
+# rownames(tau_p) <- NULL
+# 
+# # add to results df
+# fg_results <- cbind(fg_results, tau_p)
+# 
 
 
 
@@ -446,11 +536,14 @@ hr_results <- cbind(hr_results, tau_p)
 ## 6. Get tau v estimates (velocity) ----
 # OU-mini f Tau isnt separated into Tau position/tau velocity, it cannot distinguish between velocity and auto-corr (auto-corr position and auto-corr velocity, model is saying they're just going straight)
 
+# SI units = seconds
+
+
 tau_v <- data.frame()
 # summary_outputs <- data.frame()
 
 for (i in seq_along(FITS)) {
-  summary <- as.data.frame(summary(FITS[[i]])$CI)
+  summary <- as.data.frame(summary(FITS[[i]], units = FALSE)$CI)
   results <- summary[grepl("velocity", row.names(summary)),]
   # check if there are results, if not, then insert NA so then everything is recorded and not skipped
   if (nrow(results) > 0) {
@@ -464,10 +557,10 @@ for (i in seq_along(FITS)) {
 # summary_outputs <- aggregate(Freq ~ Var1, data = summary_outputs, FUN = sum)
 # summary_outputs
 
-# inspect if all the units are the same 
+# inspect if all the units are the same before adding to df
 tau_v
-# some are in hours and minutes, so convert the ones with hour units into minute units
-tau_v[grep("hours", rownames(tau_v)), ] <- tau_v[grep("hours", rownames(tau_v)), ] * 60
+# convert seconds to minutes
+tau_v <- tau_v / 60
 # reinspect
 tau_v
 # looks much better
@@ -479,7 +572,7 @@ names(tau_v)[3] <- "tau_v_max_minutes"
 rownames(tau_v) <- NULL
 
 # add to results df
-hr_results <- cbind(hr_results, tau_v)
+fg_results <- cbind(fg_results, tau_v)
 
 
 
@@ -502,14 +595,18 @@ for (i in 1:length(SPEED_MEAN)) {
 }
 
 # inspect if all the units are the same 
-dof_results # (units = unitless?)
+dof_results # (units = unitless)
 ci_results #(units = meters/second)
+
+# convert speed m/s to km/h
+ci_results <- ci_results * 3.6
+ci_results
 
 # if theyre all the same then rename the columns and drop the rowname
 names(dof_results)[1] <- "speed_mean_DOF"
-names(ci_results)[1] <- "speed_mean_min_ms"
-names(ci_results)[2] <- "speed_mean_est_ms"
-names(ci_results)[3] <- "speed_mean_max_ms"
+names(ci_results)[1] <- "speed_mean_min_km_h"
+names(ci_results)[2] <- "speed_mean_est_km_h"
+names(ci_results)[3] <- "speed_mean_max_km_h"
 rownames(dof_results) <- NULL
 rownames(ci_results) <- NULL
 
@@ -517,7 +614,7 @@ rownames(ci_results) <- NULL
 speed_mean_results <- cbind(dof_results, ci_results)
 
 # add to results df
-hr_results <- cbind(hr_results, speed_mean_results)
+fg_results <- cbind(fg_results, speed_mean_results)
 
 
 
@@ -545,15 +642,16 @@ SPEEDS_INSTA # Error in as.POSIXlt.POSIXct(x, tz) : invalid 'tz' value
 
 
 #save results df
-# save(hr_results, file = "./data/home_range/fire_goat_hr_movement_results_df_20241225.rda")
+# save(fg_results, file = "./data/home_range/fire_goat_hr_movement_results_df_20241225.rda")
 load("./data/home_range/fire_goat_hr_movement_results_df_20241225.rda")
+save(fg_results, file = "./data/home_range/fire_goat_hr_movement_results_df_20250201.rda")
 
 # clean up environment
 rm(model_type,
    summary,
    hr,
    hr_size,
-   hr_size_yearly,
+   # hr_size_yearly,
    ci_df,
    dof_df,
    DOF_results,
@@ -576,22 +674,30 @@ library(lme4)
 # use goat_name instead of "individual.local.identifier" because individual.local.identifier contains year and goat_name and when using this, it accounts for all of that junk instead of just goat_name hence using ONLY goat_name
 #moreover when using individual.local.identifier in the model, its being set up as a 2 way interaction between year and goat and thats a no no
 
+str(fg_results)
+
+
 #..............................................
 ## hr model ----
 
 # Build full model based on 95% home range area estimate, weighted regression
 #dof mean is the effective sample size for estimating the center of the animal's home range.
+# fg_results$year <- as.numeric(fg_results$year) # as.numeric when wanting to see trends over time
+fg_results$year <- as.factor(fg_results$year) # as.factor when comparing between years
+fg_results$goat_name <- as.factor(fg_results$goat_name)
+fg_results$goat_id <- as.factor(fg_results$goat_id)
 
 
 m1 <- glmer(mean_hr_est_km2 ~ year + 
               (1|goat_name),
             family = Gamma('log'),
             weights = DOF_area,
-            data = hr_results,
+            data = fg_results,
             na.action = "na.fail")
 
 summary(m1)
 
+# year does not effect hr size significantly (p = 0.376)
 
 #export and save summary output to a textfile
 sink("data/home_range/fire_goat_m_hr_summary_20241225.txt")
@@ -614,7 +720,7 @@ sink() #terminate output exporting connection/process (multiple functions can be
 m2 <- glmer(mean_hr_est_km2 ~ 1 + (1|goat_name),
             family = Gamma('log'),
             weights = DOF_area,
-            data = hr_results,
+            data = fg_results,
             na.action = "na.fail")
 test_results <- anova(m1, m2)
 round(test_results$`Pr(>Chisq)`[2], 2) #p = 0 
@@ -633,7 +739,7 @@ md <- glmer(diffusion_est_km2_day ~ year +
               (1|goat_name),
             family = Gamma('log'),
             weights = DOF_diffusion,
-            data = hr_results,
+            data = fg_results,
             na.action = "na.fail")
 
 summary(md)
@@ -652,6 +758,8 @@ print(paste("year2021:", paste(-0.02558 + c(-1.96, 1.96) * 0.01051, collapse = "
 print(paste("year2022:", paste(-0.03114 + c(-1.96, 1.96) * 0.01014, collapse = " ")))
 print(paste("year2023:", paste(-0.17369 + c(-1.96, 1.96) * 0.01085, collapse = " ")))
 sink() #terminate output exporting connection/process (multiple functions can be exported)
+
+
 
 
 
@@ -742,17 +850,17 @@ load("./data/home_range/fire_goat_hr_movement_results_df_20241225.rda")
 
 
 # add covariate extracted mean values to hr results df
-dat_corr <- cbind(hr_results, covariate_results)
+dat_corr <- cbind(fg_results, covariate_results)
 
 #subset data to be used in corrplot()
 dat_corr <- dat_corr[,c("mean_hr_est_km2", 
-                  "mean_elev_25m", "mean_dist_escape_25m",
-                  "mean_scl_elev", "mean_scl_dis_escape")]
+                        "mean_elev_25m", "mean_dist_escape_25m",
+                        "mean_scl_elev", "mean_scl_dis_escape")]
 
 # rename for visualisation
 names(dat_corr) <- c("Mean Home Range (km2)", 
-                    "Mean Elevation", "Mean Dist. to Escape Terrain",
-                    "Scaled Mean Elevation", "Scaled Mean Dist. to Escape Terrain")
+                     "Mean Elevation", "Mean Dist. to Escape Terrain",
+                     "Scaled Mean Elevation", "Scaled Mean Dist. to Escape Terrain")
 # Use corrplot() to determine variables to include in full model
 plot_corrplot <- corrplot(cor(dat_corr), method = 'number')
 
@@ -775,9 +883,11 @@ elev_25m = raster('data/rasters/elev_25m.tif')
 dist_escape_25m = raster('data/rasters/dist_escape_25m.tif')
 # Some rasters are not loaded in RAM and may be slow to process. See help("raster::readAll").
 
-R <- list(elevation = elev_25m, 
-          dist_escape = dist_escape_25m)
+# create a list of rasters
+r_list <- list(elevation = elev_25m, 
+               dist_escape = dist_escape_25m)
 
+# initialize empty list for storing
 rsf <- list()
 
 # Fit RSF models (needs to be raster object and not spatraster)
@@ -791,7 +901,7 @@ for(i in 1:length(tel_data)){
   AKDE <- AKDES[[i]]
   
   # Fit rsf
-  rsf[[i]] <- rsf.fit(DATA,AKDE, R=R)
+  rsf[[i]] <- rsf.fit(DATA,AKDE, R=R_list)
 }
 names(rsf) <- names(tel_data)
 
@@ -811,14 +921,14 @@ load("./data/rsf/fire_goat_rsf_20241220.rda")
 rsf_list <- list()
 
 i = 1
-summary(rsf[[i]])
+summary(rsf[i], units = FALSE)
 
 for(i in 1:length(rsf)){
   
   #create and transpose (flip the rows/columns) a dataframe
-  elev <- data.frame(t(summary(rsf[[i]])$CI["elevation (1/elevation)",]))
+  elev <- data.frame(t(summary(rsf[[i]], units = FALSE)$CI["elevation (1/elevation)",]))
   elev_cov = rsf[[i]]$COV['elevation','elevation']
-  dist_escape <- data.frame(t(summary(rsf[[i]])$CI["dist_escape (1/dist_escape)",])) 
+  dist_escape <- data.frame(t(summary(rsf[[i]], units = FALSE)$CI["dist_escape (1/dist_escape)",])) 
   dist_escape_cov = rsf[[i]]$COV['dist_escape','dist_escape']
   
   c(elev, elev_cov, dist_escape, dist_escape_cov)
@@ -867,15 +977,17 @@ covariate_results <- subset(covariate_results, select = -individual.local.identi
 rsf_results <- subset(rsf_results, select = -individual.local.identifier)
 
 # combine
-results_df <- cbind(hr_results, covariate_results)
+results_df <- cbind(fg_results, covariate_results)
 results_df <- cbind(results_df, rsf_results)
 
 
 #...............................................................................
 ## yearly rsf values i.e. mean value per year ----
 # set years
-results_df$year <- as.numeric(results_df$year)
-data_years <- seq(from = 2019, to = 2023, by = 1)
+results_df$year <- as.factor(results_df$year)
+
+data_years <- as.factor(seq(from = 2019, to = 2023, by = 1))
+
 rsf_yearly <- data.frame()
 
 # calculate mean values for each year
@@ -887,6 +999,21 @@ for (i in 1:length(data_years)) {
 
 # write.csv(rsf_yearly,  "./data/rsf/fire_goat_rsf_yearly_covariates.csv", row.names = FALSE)
 rsf_yearly <- read.csv( "./data/rsf/fire_goat_rsf_yearly_covariates.csv")
+
+rsf_yearly
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1041,7 +1168,7 @@ Lupe.dat %>%
 
 
 #___________________________________________________________________________
-# Section 3: Fitting and Interpetting Parameters in a Habitat-Selection Function (HSF)
+## Section 3: Fitting and Interpetting Parameters in a Habitat-Selection Function (HSF) ----
 Lupe.dat$w <- ifelse(Lupe.dat$case_, 1, 5000) # used to assign weights
 # fit model
 HSF.Lupe1 <- glm(case_ ~ elev_25m + dist_escape_25m, 
@@ -1076,7 +1203,7 @@ exp(coef(HSF.Lupe1)["elev_25m"])*a.elevation / a.distance
 
 
 #______________________________________________
-# Section 4: Interactions
+## Section 4: Interactions ----
 
 ggplot(Lupe.dat, aes(elev_25m, dist_escape_25m, fill=case_))+
   geom_boxplot() +    
@@ -1093,3 +1220,21 @@ HSF.Lupe3 <- glm(
   weight=w,
   family = binomial)
 summary(HSF.Lupe3)
+
+
+
+
+
+
+
+
+
+
+
+
+#___________________________________________________________
+# distance to fire ----
+
+
+# based on modis data
+
