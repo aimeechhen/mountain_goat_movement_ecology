@@ -42,4 +42,4 @@ m <- matrix(values(el),
 
 image(m, main = "elevation matrix")
 
-save(m, file = "./data/fire/20241210_elevation_matrix.rda")
+save(m, file = "./figures/fire/20241210_elevation_matrix.rda")

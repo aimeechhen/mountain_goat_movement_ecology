@@ -6,8 +6,6 @@ library(lubridate)
 
 # read in data
 FOIPPA <- st_read('data/fire/bc_gov_FOIPPA/crater_boundaries/23 K52125 Perimeter History Jun17.shp')
-# convert to lat/long projection
-FOIPPA <- st_transform(FOIPPA, crs = 4326)
 # rename columns so they are consistent
 colnames(FOIPPA)[colnames(FOIPPA) == 'CaptureDat'] <- 'date'
 colnames(FOIPPA)[colnames(FOIPPA) == 'CaptureTim'] <- 'time'
