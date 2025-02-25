@@ -88,13 +88,14 @@ hr_size <- data.frame()
 for (i in 1:length(AKDES)) {
   # get hr size 
   hr <- as.data.frame(ctmm::meta(AKDES[i]))
+  #hr <- as.data.frame(ctmm::meta(AKDES[i]), units = FALSE)
   # subset to hr size row only
   hr <- hr[1,]
   # add to hr_size df
   hr_size <- rbind(hr_size, hr)
 }
 
-# inspect if all the units are the same (units = km²)
+# inspect if all the units are the same (units = km²), units = FALSE, default units are m^2, but in the for loop with units = FALSE, it changed it to km² instead of keeping it in m²
 hr_size
 # if theyre all the same then rename the columns and drop the rowname
 names(hr_size)[1] <- "mean_hr_min_km2"
@@ -113,22 +114,22 @@ load("data/home_range/hr_size_20241226.rda")
 # alternatively, get hr values from the summary
 # 
 # #create a dataframe to store home range area statistics from the AKDE
-# HR_size <- data.frame()
+# hr_size <- data.frame()
 # 
 # #loop through each object in the AKDE list
 # for (i in 1:length(AKDES)) {
 #   #extract the home range area statistics summary
-#   summary <- as.data.frame(summary(AKDES[[i]])$CI)
+#   summary <- as.data.frame(summary(AKDES[[i]])$CI) # default is square meters
 #   summary$collar_id <- names(AKDES[i])
 #   #bind the summary to the dataframe
-#   HR_size <- rbind(HR_size, summary)
+#   hr_size <- rbind(hr_size, summary)
 # }
 # 
-# row.names(HR_size) <- NULL
-# names(HR_size)[7] <- "HR_low"
-# names(HR_size)[8] <- "HR_est"
-# names(HR_size)[9] <- "HR_high"
+# row.names(hr_size) <- NULL
+# names(hr_size)[7] <- "hr_low"
+# names(hr_size)[8] <- "hr_est"
+# names(hr_size)[9] <- "hr_high"
 # 
 # #save home range size results
-# # save(HR_size, file = "data/home_range/HR_size.rda")
-# load("data/home_range/HR_size.rda")
+# # save(hr_size, file = "data/home_range/hr_size.rda")
+# load("data/home_range/hr_size.rda")

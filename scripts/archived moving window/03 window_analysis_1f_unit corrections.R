@@ -95,11 +95,11 @@ akdes_dir = paste0(getwd(), "/data/moving_window/fire_goats", '/akdes_20241224')
 #...............................................................
 
 # # testing the function
-# i <- 1
-# DATA <- tel_data[1]
-# DATA <- DATA[[1]]
-# dt <- 1 %#% 'day'#, #  %#% uses ctmm package to set the units, i.e. days
-# win <- 3 %#% 'day'
+i <- 1
+DATA <- tel_data[1]
+DATA <- DATA[[1]]
+dt <- 1 %#% 'day'#, #  %#% uses ctmm package to set the units, i.e. days
+win <- 3 %#% 'day'
 
 
 window_HR <- function(DATA, dt, win) {

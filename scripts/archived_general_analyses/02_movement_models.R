@@ -6,15 +6,25 @@ library(tictoc)
 library(dplyr)
 library(beepr)
 
-load("data/collar_data/collar_data_20241123.rda")
+# load("data/collar_data/collar_data_20241123.rda")
+load("data/collar_data/new_collar_data_20250218.rda")
+new_collar$timestamp <- as.POSIXct(new_collar$timestamp, origin = "1970-01-01", tz = "America/Vancouver")
 
 #format names to match required for ctmm based on Movebank critera:
-dat = plyr::rename(collar_data, c('goat_name' = 'individual.local.identifier',
-                                  'latitude' = 'location.lat', 
-                                  'longitude' = 'location.long'))
+# dat = plyr::rename(collar_data, c('goat_name' = 'individual.local.identifier',
+#                                   'latitude' = 'location.lat', 
+#                                   'longitude' = 'location.long'))
+
+# #format names to match required for ctmm based on Movebank critera:
+# dat = plyr::rename(new_collar, c('goat_name' = 'individual.local.identifier',
+#                                   'latitude' = 'location.lat', 
+#                                   'longitude' = 'location.long'))
+
+
+
 
 # convert data to a ctmm telemetry object
-tel_data <- as.telemetry(dat, mark.rm = TRUE)
+tel_data <- as.telemetry(new_collar, mark.rm = TRUE)
 
 # summary of the gps data
 summary(tel_data)
@@ -85,8 +95,11 @@ names(SPEEDS_INSTA) <- names(tel_data)
 toc()
 END <- Sys.time()
 beep(8)
+# save(SPEED_MEAN, file = "./data/movement_model/goat_speed_mean_20241226.rda")
+# save(SPEEDS_INSTA, file = "./data/movement_model/goat_speeds_insta_20241226.rda")
 save(SPEED_MEAN, file = "./data/movement_model/goat_speed_mean_20241226.rda")
 save(SPEEDS_INSTA, file = "./data/movement_model/goat_speeds_insta_20241226.rda")
+
 
 
 load("./data/movement_model/goat_speed_mean_20241226.rda")
@@ -110,7 +123,7 @@ SUMMARY_FITS <- SUMMARY_FITS[, c("goat_name", "goat_id", "collar_id")]
 #__________________________________________________________
 # RESULTS ----
 
-# inspect one summary output of movement model
+# inspect one summary output of movement model (using concise units)
 fitsum <- summary(FITS[[1]])
 fitsum
 # CI units:
@@ -120,18 +133,31 @@ fitsum
 # speed (kilometers/day)  
 # diffusion (hectares/day)
 
+fitsum <- summary(FITS[[1]], units = FALSE) # using SI units
+fitsum <- summary(FITS[[1]], units = FALSE)$CI
+fitsum
+# CI units:
+# area (square meters)
+# τ[position] (seconds)       
+# τ[velocity] (seconds)   
+# speed (meters/second)  
+# diffusion (square meters/second)
 
 #........................................
 ## check units to see if theyre all the same ----
+
+i <- 1
+
 summary_outputs <- data.frame()
 
 for (i in seq_along(FITS)) {
-  summary <- summary(FITS[[i]])$CI
+  summary <- summary(FITS[[i]], units = FALSE)$CI
   summary_outputs <- rbind(summary_outputs, data.frame(Var1 = names(table(rownames(summary))), Freq = as.integer(table(rownames(summary)))))
 }
 # get the counts be combining all the entries and summing them up to get the total
 summary_outputs <- aggregate(Freq ~ Var1, data = summary_outputs, FUN = sum)
 summary_outputs
+
 
 # Var1 Freq
 # 1 area (square kilometers)   10
