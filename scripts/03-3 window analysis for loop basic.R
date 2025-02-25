@@ -106,7 +106,7 @@ for(goat in 1:length(tel_data)){
   
   #.......................................................................
   # Set up the window segments
-  # Generate start times with a 3-day segment for the individual, using t column instead of timestamp column because of the nature of how this is set up and using ctmm objects
+  # Generate a "list" or vector of all the window start times with a 3-day segment for the individual, using t column instead of timestamp column because of the nature of how this is set up and using ctmm objects
   times <- seq(from = DATA$t[1], # t = Unix timestamp format
                to = DATA$t[nrow(DATA)],  
                by = dt) # shift each segment by 1 day forward
