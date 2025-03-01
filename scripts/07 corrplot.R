@@ -1,5 +1,8 @@
 
 
+# load akdes
+load("data/home_range/akdes_20250301.rda")
+
 
 
 
