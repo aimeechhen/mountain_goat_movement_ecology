@@ -1,4 +1,28 @@
 
+
+
+win_results <- read.csv(file = "./data/window_analysis_results_XXXXX.csv", row.names = FALSE)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # Moving Window Results ----
 
 library(lubridate)
@@ -352,7 +376,7 @@ ggplot(data = mw_dat) +
         legend.position = "top",
         plot.title = element_text(hjust = 0.5, size = 14, family = "sans", face = "bold"),
         plot.margin = unit(c(0.2, 0.1, 0.2, 0.2), "cm"))
- 
+
 
 ggsave(last_plot(),  file="figures/moving_window/fire_goats_moving_window_3_dist_escape_overtime_calendar_scale.png",
        width = 12, height = 15, units = "in", dpi = 600, bg = "transparent")
@@ -453,43 +477,43 @@ goat_names <- unique(mw_dat$goat_name)
 # Loop through each unique goat_name
 for (goat in goat_names) {
   mw_dat2 <- mw_dat[mw_dat$goat_name == goat, ]
-
+  
   # plot
   p <-
-ggplot(data = mw_dat2) +
-  geom_point(aes(x = doy, y = hr_est_km, color = as.factor(year), group = as.factor(year))) +
-  # geom_smooth(aes(x = doy, y = hr_est, color = as.factor(year), group = as.factor(year), linetype = 'solid'),  alpha = 0.5) +
-  geom_vline(xintercept = c(203, 299), color = "#bb5566", linetype = "dashed") +
-  labs(y = expression("95% Home Range Area Estimate (km"^2*")")) + 
-  facet_wrap(~ year, 
-             ncol = 1, nrow = 6, # sorted by ID
-             scales = "fixed", ) +  #set axis so theyre the same for every plot
-  ggtitle(paste(mw_dat2$goat_name)) +
-  # scale_y_continuous(name = expression("95% Home Range Area Estimate (km"^2*")")) +
-  scale_y_log10() +
-  scale_x_continuous(name = 'Month',
-                     limits = c(-5, 370), 
-                     expand = c(0, 0), # Full year
-                     breaks = month_breaks, # Approximate month starts
-                     # breaks = c(0, 32, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335), # Approximate month starts
-                     labels = month.abb) + # Month abbreviations
-  scale_color_manual(#name = "Year", 
-    name = "", 
-    values = c("2019" = "#332288",
-               "2020" = "#ddaa33",
-               "2021" = "#006d2c",
-               "2022" = "#33bbee",
-               "2023" = 'black')) +
-  guides(linetype = "none") +  # Remove linetype legend
-  theme_bw() +
-  theme(panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        plot.title = element_text(hjust = 0.5, size = 14, family = "sans", face = "bold"),
-        plot.margin = unit(c(0.2, 0.1, 0.2, 0.2), "cm"),
-        legend.position = "none")
-
-
-
+    ggplot(data = mw_dat2) +
+    geom_point(aes(x = doy, y = hr_est_km, color = as.factor(year), group = as.factor(year))) +
+    # geom_smooth(aes(x = doy, y = hr_est, color = as.factor(year), group = as.factor(year), linetype = 'solid'),  alpha = 0.5) +
+    geom_vline(xintercept = c(203, 299), color = "#bb5566", linetype = "dashed") +
+    labs(y = expression("95% Home Range Area Estimate (km"^2*")")) + 
+    facet_wrap(~ year, 
+               ncol = 1, nrow = 6, # sorted by ID
+               scales = "fixed", ) +  #set axis so theyre the same for every plot
+    ggtitle(paste(mw_dat2$goat_name)) +
+    # scale_y_continuous(name = expression("95% Home Range Area Estimate (km"^2*")")) +
+    scale_y_log10() +
+    scale_x_continuous(name = 'Month',
+                       limits = c(-5, 370), 
+                       expand = c(0, 0), # Full year
+                       breaks = month_breaks, # Approximate month starts
+                       # breaks = c(0, 32, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335), # Approximate month starts
+                       labels = month.abb) + # Month abbreviations
+    scale_color_manual(#name = "Year", 
+      name = "", 
+      values = c("2019" = "#332288",
+                 "2020" = "#ddaa33",
+                 "2021" = "#006d2c",
+                 "2022" = "#33bbee",
+                 "2023" = 'black')) +
+    guides(linetype = "none") +  # Remove linetype legend
+    theme_bw() +
+    theme(panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          plot.title = element_text(hjust = 0.5, size = 14, family = "sans", face = "bold"),
+          plot.margin = unit(c(0.2, 0.1, 0.2, 0.2), "cm"),
+          legend.position = "none")
+  
+  
+  
   ggsave(filename = paste0("figures/moving_window/individual/mw_1_hr_overtime_calendar_", goat, ".png"),
          plot = p,
          width = 12, height = 15, units = "in", dpi = 600, bg = "transparent")
