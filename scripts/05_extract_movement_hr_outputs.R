@@ -1,11 +1,11 @@
 
-# Extract results
+# Extract movement and home range results
 
 # data import ----
-load("data/movement_model/fits_20250225.rda")
-load(file = "./data/movement_model/speed_mean_20250225.rda")
-load(file = "./data/movement_model/speeds_insta_20250225.rda")
-load("data/home_range/full_fire_goat_akdes_20250219.rda")
+load("data/movement_model/fits_20250301.rda")
+load("./data/movement_model/speed_mean_20250301.rda")
+load("./data/movement_model/speeds_insta_20250301.rda")
+load("data/home_range/akdes_20250301.rda")
 
 
 
@@ -350,14 +350,10 @@ write.csv(RESULTS, file = "./data/full_data_results_20250225.csv", row.names = F
 
 
 #/////////////////////////////////////////////////////////////////////////
-# Extracting section by section ----
+# Single results ----
 #/////////////////////////////////////////////////////////////////////////
 
-#build results dataframe
-fits_results <- data.frame(goat_name = names(FITS))
-fits_results$collar_id <- collar_data$collar_id[match(fits_results$goat_name, collar_data$goat_name)]
-fits_results$goat_id <- collar_data$goat_id[match(fits_results$goat_name, collar_data$goat_name)]
-fits_results <- fits_results[, c("goat_name", "goat_id", "collar_id")]
+
 
 #get movement model that was best fit
 model_type <- data.frame()
@@ -367,7 +363,7 @@ for (i in 1:length(FITS)) {
 }
 names(model_type)[1] <- "movement_model"
 
-fits_results <- cbind(fits_results, model_type)
+model_type
 
 
 
@@ -385,7 +381,8 @@ names(DOF_results)[2] <- "DOF_area"
 names(DOF_results)[3] <- "DOF_diffusion"
 names(DOF_results)[4] <- "DOF_speed"
 
-fits_results <- cbind(fits_results, DOF_results)
+DOF_results
+
 
 
 #...........................................
@@ -414,7 +411,8 @@ diffusion_results$diffusion_min_km2_day <- diffusion_results$diffusion_min_m2_s 
 diffusion_results$diffusion_est_km2_day <- diffusion_results$diffusion_est_m2_s * 0.0864
 diffusion_results$diffusion_max_km2_day <- diffusion_results$diffusion_max_m2_s * 0.0864
 
-fits_results <- cbind(fits_results, diffusion_results)
+diffusion_results
+
 
 #.........................................................
 # Get position and velocity (tau p and tau v)
@@ -443,7 +441,7 @@ names(tau_p_results)[2] <- "tau_p_est_days"
 names(tau_p_results)[3] <- "tau_p_max_days"
 rownames(tau_p_results) <- NULL
 
-fits_results <- cbind(fits_results, tau_p_results)
+tau_p_results
 
 
 
@@ -481,7 +479,7 @@ names(tau_v_results)[2] <- "tau_v_est_minutes"
 names(tau_v_results)[3] <- "tau_v_max_minutes"
 rownames(tau_v_results) <- NULL
 
-fits_results <- cbind(fits_results, tau_v_results)
+tau_v_results
 
 
 
@@ -516,8 +514,8 @@ rownames(ci_results) <- NULL
 
 # combine the two
 speed_mean_results <- cbind(dof_results, ci_results)
+speed_mean_results
 
-fits_results <- cbind(fits_results, speed_mean_results)
 
 
 
@@ -537,31 +535,27 @@ speed_insta_results <- data.frame(
 # SPEEDS_INSTA # Error in as.POSIXlt.POSIXct(x, tz) : invalid 'tz' value 
 
 
+
+#..........................................
+# combine each component together into a df ----
+
+
+#build results dataframe
+fits_results <- data.frame(goat_name = names(FITS))
+fits_results$collar_id <- collar_data$collar_id[match(fits_results$goat_name, collar_data$goat_name)]
+fits_results$goat_id <- collar_data$goat_id[match(fits_results$goat_name, collar_data$goat_name)]
+fits_results <- fits_results[, c("goat_name", "goat_id", "collar_id")]
+
+# combine parts
+fits_results <- cbind(fits_results, model_type)
+fits_results <- cbind(fits_results, DOF_results)
+fits_results <- cbind(fits_results, diffusion_results)
+fits_results <- cbind(fits_results, tau_p_results)
+fits_results <- cbind(fits_results, tau_v_results)
+fits_results <- cbind(fits_results, speed_mean_results)
 
 
 #save df
 save(fits_results, file = "./data/movement_model/goat_fits_summary_20241226.rda")
 # load("./data/movement_model/goat_fits_summary_20241226.rda")
-
-
-#..........................................
-# get insta speed
-# Extract insta speed values ****(units = meters/sec) (time-averaged speed, proportional to distance travelled)
-# OU model causes 'Inf' because not enough data to estimate**** check
-
-speed_insta_results <- data.frame(
-  speed_insta_min = numeric(length(FITS)),
-  speed_insta_est = numeric(length(FITS)),
-  speed_insta_max = numeric(length(FITS))
-)
-
-
-# SPEEDS_INSTA <- readRDS(file = "./data/movement_model/goat_speeds_insta_20241108.rda")
-# SPEEDS_INSTA # Error in as.POSIXlt.POSIXct(x, tz) : invalid 'tz' value 
-
-
-
-
-
-
 
