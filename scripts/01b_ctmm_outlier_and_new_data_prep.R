@@ -661,9 +661,11 @@ goat_data[complete.cases(goat_data$longitude, goat_data$latitude, goat_data$time
 # remove the rows that are full NA rows
 goat_data <- goat_data[complete.cases(goat_data$longitude, goat_data$latitude, goat_data$timestamp, goat_data$goat_name), ]
 
+#organize columns
+goat_data <- relocate(goat_data, c(collar_id, goat_name, goat_id), .before = timestamp)
+
 write.csv(goat_data, file = "./data/combined_goat_data_fire_period_all_years.csv", row.names = FALSE)
-
-
+goat_data <- read.csv("./data/combined_goat_data_fire_period_all_years.csv")
 
 
 
