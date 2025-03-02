@@ -9,23 +9,46 @@ library(tictoc)
 library(beepr)
 library(lubridate)
 library(crayon)
+library(terra)
 
-# Import combined collar data (original + new data & subsetted to fire periods across all years)
+
+#...............................................................
+# A. Import data ----
+#...............................................................
+
+# load("data/collar_data/collar_data_20240703.rda")
+# load("data/collar_data/collar_data_20241123.rda")
+
+# Import combined collar data (original + new) ----
 goat_data <- read.csv("./data/combined_goat_data_fire_period_all_years.csv")
 # formatting
-goat_data$timestamp <- as.POSIXct(goat_data$timestamp, format = "%Y-%m-%d %H:%M:%S")
-goat_data$date <- as.Date(goat_data$date, "%Y-%m-%d")
+goat_data$timestamp = as.POSIXct(goat_data$timestamp, format = "%Y-%m-%d %H:%M:%S")
+goat_data$date = as.Date(goat_data$date, "%Y-%m-%d")
 goat_data$goat_name <- as.factor(goat_data$goat_name)
 goat_data$collar_id <- as.factor(goat_data$collar_id)
 
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~
+# subset to test window analysis
+# goats <- c("30575", "30613")
+# goat_data <- goat_data[goat_data$collar_id %in% goats,]
+# fire_start <- '2023-07-22' # doy = 203
+# fire_end <- '2023-10-26' # doy = 299
+# goat_data <- goat_data[goat_data$date >= fire_start & goat_data$date <= fire_end, ]
+# dat <- plyr::rename(goat_data, c('collar_id' = 'individual.local.identifier',
+#                                    'latitude' = 'location.lat',
+#                                    'longitude' = 'location.long'))
+#~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
 #format names to match required for ctmm based on Movebank critera:
-# create a column 
-goat_data$individual.local.identifier <- paste(goat_data$collar_id, goat_data$year, sep = "_")
-# format names to match
-goat_data <- plyr::rename(goat_data, c('latitude' = 'location.lat', 
-                                         'longitude' = 'location.long'))
+dat <- plyr::rename(goat_data, c('collar_id' = 'individual.local.identifier',
+                                 'latitude' = 'location.lat',
+                                 'longitude' = 'location.long'))
+
 #Convert to telemetry
-tel_data <- as.telemetry(goat_data, mark.rm = TRUE)
+tel_data <- as.telemetry(dat, mark.rm = TRUE)
 
 
 
@@ -34,33 +57,6 @@ tel_data <- as.telemetry(goat_data, mark.rm = TRUE)
 #..................................................................
 
 # moving window analysis only, no extractions, save outputs, very basic
-
-library(ctmm)
-library(lutz)
-library(tidyr)
-library(dplyr)
-library(stringr)
-library(ggplot2)
-library(lubridate)
-library(tictoc)
-library(sf)
-library(raster)
-library(terra)
-library(beepr)
-library(crayon)
-
-
-# Run data prep for full data first, do not run fire_goats, that is for only during the fire period across all years
-# using full data for 6 goats for window analysis
-full_data <- new_collar
-#sort data by goat and timestamp
-full_data <- full_data[order(full_data$collar_id, full_data$timestamp), ]
-
-
-
-
-# convert to a ctmm telemetry object (remember, this tel_data differs from the one above!!)
-tel_data <- as.telemetry(full_data)
 
 # Import habitat rasters as raster for rsf.fit() from ctmm package, spatrasters do not work with the function
 # issue with reprojecting the raster, import as spatraster, reproject, then convert to raster as workaround
@@ -78,16 +74,16 @@ dist_escape <- raster(dist_escape)
 
 
 # create a list of rasters
-r_list <- list(elevation = elev, 
+r_list <- list(elev = elev, 
                dist_escape = dist_escape)
 
 
 #create folders
-folder_list <- c("fits_20250219", 
-                 "akdes_20250219",
-                 "mean_speed_20250219",
-                 "insta_speed_20250219",
-                 "covariates_20250219",
+folder_list <- c("fits_20250301", 
+                 "akdes_20250301",
+                 "mean_speed_20250301",
+                 "insta_speed_20250301",
+                 "covariates_20250301",
                  "rsf_20250220")
 
 ## set directory path ----
@@ -95,7 +91,7 @@ folder_list <- c("fits_20250219",
 # dir_path <- "./data/window_analysis/fire_goats/basic/" # for all of the data but only of the 6 fire goats
 # dir_path <- "./data/window_analysis/" # for all goats for all data
 # dir_path <- "./data/window_analysis/fire_goats/full_data/" # for full data for the 6 fire goats
-dir_path <- "./data/window_analysis/fire_goats/new_data/" 
+dir_path <- "./data/window_analysis/combined_data/" 
 # dir_path <- "./data/window_analysis/test/" # for full data, fire goats 
 
 
@@ -121,9 +117,6 @@ for (folder in folder_list) {
 
 
 
-
-
-
 #//////////////////////////////////////////////////////////
 # window analysis ----
 #//////////////////////////////////////////////////////////
@@ -132,7 +125,7 @@ for (folder in folder_list) {
 # test dates
 # fire_start <- '2023-07-01' # doy = 203
 # fire_end <- '2023-07-31' # doy = 299
-# test_dat <- full_data[full_data$date >= fire_start & full_data$date <= fire_end, ]
+# test_dat <- goat_data[goat_data$date >= fire_start & goat_data$date <= fire_end, ]
 # tel_data <- as.telemetry(test_dat)
 # DATA <- tel_data[[1]]
 # i <- 1
@@ -142,14 +135,14 @@ dt <- 1 %#% 'day' #  %#% uses ctmm package to set the units, i.e. days
 win <- 3 %#% 'day'
 
 tic(msg = "window analysis")
-START_ANALYSIS <- Sys.time()
+START_window <- Sys.time()
 
 #.........................................
 # outer for loop ----
 
-for(goat in 1:length(tel_data)){
+for(g in 1:length(tel_data)){
   # subset an individual out
-  DATA <- tel_data[[goat]]
+  DATA <- tel_data[[g]]
   
   #.......................................................................
   # Set up the window segments
@@ -172,8 +165,8 @@ for(goat in 1:length(tel_data)){
   # Set up list to store
   fits <- list()
   akdes <- list()
-  # speed_mean <- list()
-  # speeds_insta <- list()
+  speed_mean <- list()
+  speeds_insta <- list()
   # covariates <- data.frame(
   #   collar_id = character(length(times)),
   #   window_start <- as.POSIXct(rep(NA, length(times)), tz = "America/Vancouver"),
@@ -219,11 +212,11 @@ for(goat in 1:length(tel_data)){
         message(green("home range analyses"))
         AKDES <- akde(SUBSET, FITS, weights = TRUE)
         
-        # message(yellow("SPEED analyses"))
-        # tic(msg = "speed analysis")
-        # SPEED_MEAN <- speed(object = SUBSET, CTMM = FITS, robust = TRUE, units = FALSE, cores = -1)
-        # SPEEDS_INSTA <- speeds(object = SUBSET, CTMM = FITS, robust = TRUE, units = FALSE, cores = -1)
-        # toc()
+        message(yellow("SPEED analyses"))
+        tic(msg = "speed analysis")
+        SPEED_MEAN <- speed(object = SUBSET, CTMM = FITS, robust = TRUE, units = FALSE, cores = -1)
+        SPEEDS_INSTA <- speeds(object = SUBSET, CTMM = FITS, robust = TRUE, units = FALSE, cores = -1)
+        toc()
         
         message(green("rsf analyses"))
         tic(msg = "rsf analysis")
@@ -235,8 +228,8 @@ for(goat in 1:length(tel_data)){
         # store models/UDs in a list, name the entry based on goat name and subset window start date, not the times[i] as that is in unix format
         fits[[paste0(DATA@info[1], "_", as.character(WINDOW_START))]] <- FITS
         akdes[[paste0(DATA@info[1], "_", as.character(WINDOW_START))]] <- AKDES
-        # speed_mean[[paste0(DATA@info[1], "_", as.character(WINDOW_START))]] <- SPEED_MEAN
-        # speeds_insta[[paste0(DATA@info[1], "_", as.character(WINDOW_START))]] <- SPEEDS_INSTA
+        speed_mean[[paste0(DATA@info[1], "_", as.character(WINDOW_START))]] <- SPEED_MEAN
+        speeds_insta[[paste0(DATA@info[1], "_", as.character(WINDOW_START))]] <- SPEEDS_INSTA
         rsf[[paste0(DATA@info[1], "_", as.character(WINDOW_START))]] <- RSF
         
         # # # habitat variables ----
@@ -253,8 +246,8 @@ for(goat in 1:length(tel_data)){
         # # covariates$mean_dist_escape[i] <- mean(raster::extract(dist_escape, locations)[,2])
         # covariates$mean_elev[i] <- mean(raster::extract(elev, SUBSET_SF))         # changing locations to SUBSET_SF because of rasterlayer object and indexing isnt necessary
         # covariates$mean_dist_escape[i] <- mean(raster::extract(dist_escape, SUBSET_SF))
-        # 
-        
+
+
         # END OF INNER LOOP
         
         
@@ -272,20 +265,20 @@ for(goat in 1:length(tel_data)){
   
   # save all the outputs as a rds for future analysis ----
   message(cyan(bgWhite(paste("saving output for goat", DATA@info[1]))))
-  # saveRDS(fits, file = paste0(dir_path, "fits_20250219/fits_", DATA@info[1], ".rds"))
-  # saveRDS(akdes, file = paste0(dir_path, "akdes_20250219/akdes_", DATA@info[1], ".rds"))
-  # saveRDS(speed_mean, file = paste0(dir_path, "mean_speed_20250219/mean_speed_", DATA@info[1], ".rds"))
-  # saveRDS(speeds_insta, file = paste0(dir_path, "insta_speed_20250219/insta_speed_", DATA@info[1], ".rds"))
-  # saveRDS(covariates, file = paste0(dir_path, "covariates_20250219/covariates_", DATA@info[1], ".rds")) # remember this is a df and not a list
-  saveRDS(rsf, file = paste0(dir_path, "rsf_20250219/rsf_", DATA@info[1], ".rds"))
+  saveRDS(fits, file = paste0(dir_path, "fits_20250301/fits_", DATA@info[1], ".rds"))
+  saveRDS(akdes, file = paste0(dir_path, "akdes_20250301/akdes_", DATA@info[1], ".rds"))
+  saveRDS(speed_mean, file = paste0(dir_path, "mean_speed_20250301/mean_speed_", DATA@info[1], ".rds"))
+  saveRDS(speeds_insta, file = paste0(dir_path, "insta_speed_20250301/insta_speed_", DATA@info[1], ".rds"))
+  # saveRDS(covariates, file = paste0(dir_path, "covariates_20250301/covariates_", DATA@info[1], ".rds")) # remember this is a df and not a list
+  saveRDS(rsf, file = paste0(dir_path, "rsf_20250301/rsf_", DATA@info[1], ".rds"))
   
   
   
   # clean up environment
-  # rm(FITS, 
-  #    AKDES)#,#)
-  #    # SPEED_MEAN, SPEEDS_INSTA)
-  #    # RSF)
+  rm(FITS,
+     AKDES,
+     SPEED_MEAN, SPEEDS_INSTA,
+     RSF)
   gc() # free up computational resources
   
   # END OF OUTER LOOP, START AT TOP WITH A NEW GOAT
@@ -301,7 +294,7 @@ toc() # 5.2 min, 5 min, 5.6min
 # new  data, no speed, no rsf = 
 kittyR::meowR(sound = 3)
 
-END_ANALYSIS <- Sys.time()
+END_window <- Sys.time()
 
 
 
