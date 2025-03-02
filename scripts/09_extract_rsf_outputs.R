@@ -1,25 +1,116 @@
 # 
 # Extract rsf results 
 
+# data import ----
+load("./data/rsf/rsf_20250301.rda")
 
 
+
+#______________________________________________________________________________
+# check units ----
+
+# Default units:
+# area (square meters)             
+# τ (seconds)                      
+# speed (meters/second)            
+# diffusion (square meters/second)
+
+
+summary(RSF[[i]], units = FALSE) 
+# inspect one summary output of movement model (using concise units)
+rsfsum <- summary(RSF[[1]])
+rsfsum
+# CI units:
+# dist_escape (1/dist_escape) 
+# elev (1/elev)               
+# area (square kilometers)    
+# τ[position] (days)           
+# τ[velocity] (hours)          
+# speed (kilometers/day)       
+# diffusion (hectares/day)  
+
+rsfsum <- summary(RSF[[1]], units = FALSE)$CI # using SI units
+rsfsum
+# CI units:
+# dist_escape (1/dist_escape)      
+# elev (1/elev)                   
+# area (square meters)            
+# τ[position] (seconds)       
+# τ[velocity] (seconds)            
+# speed (meters/second)        
+# diffusion (square meters/second)
+
+
+#........................................
+## check units to see if theyre all the same
+
+i <- 1
+
+
+# check fitted models units
+summary_outputs <- data.frame()
+for (i in seq_along(RSF)) {
+  summary <- summary(RSF[[i]], units = FALSE)$CI # using SI units
+  summary_outputs <- rbind(summary_outputs, 
+                           data.frame(Var1 = names(table(rownames(summary))), 
+                                      Freq = as.integer(table(rownames(summary)))))
+}
+
+summary_outputs <- aggregate(Freq ~ Var1, data = summary_outputs, FUN = sum)
+summary_outputs
+
+
+
+#                              Var1 Freq
+# 1             area (square meters)    1
+# 2 diffusion (square meters/second)    1
+# 3      dist_escape (1/dist_escape)    1
+# 4                    elev (1/elev)    1
+# 5            speed (meters/second)    1
+# 6            τ[position] (seconds)    1
+# 7            τ[velocity] (seconds)    1
+
+# Var1 Freq
+# 1             area (square meters)   35
+# 2 diffusion (square meters/second)   35
+# 3            speed (meters/second)   12
+# 4            τ[position] (seconds)   35
+# 5            τ[velocity] (seconds)   12
+
+
+
+# if they are not the same units, therefore need to convert to make the units uniform across all individuals for sections that have mismatched units
+# i.e. diffusion, tau_p and tau_v sections
+
+
+
+#//////////////////////////////////////////////////////////////////
+# prep results dataframe ----
+#/////////////////////////////////////////////////////////////////
+
+RESULTS <- data.frame(collar_id = character(length(FITS)), 
+                      year = character(length(FITS)))
 
 
 #..................................................................
-## Extract rsf coefficients ----
+# rsf ----
+#.............................................................
+
+# extract rsf results (i.e., the rsf coefficients)
 
 rsf_list <- list()
 
-i = 1
-summary(RSF[i], units = FALSE)
+i = 15
+summary(RSF[[i]], units = FALSE)
+RSF[[i]]@info$identity
 
 for(i in 1:length(rsf)){
   
   #create and transpose (flip the rows/columns) a dataframe
-  elev <- data.frame(t(summary(rsf[[i]], units = FALSE)$CI["elevation (1/elevation)",]))
-  elev_cov = rsf[[i]]$COV['elevation','elevation']
-  dist_escape <- data.frame(t(summary(rsf[[i]], units = FALSE)$CI["dist_escape (1/dist_escape)",])) 
-  dist_escape_cov = rsf[[i]]$COV['dist_escape','dist_escape']
+  elev <- data.frame(t(summary(RSF[[i]], units = FALSE)$CI["elev (1/elev)",]))
+  elev_cov < RSF[[i]]$COV['elev','elev']
+  dist_escape <- data.frame(t(summary(RSF[[i]], units = FALSE)$CI["dist_escape (1/dist_escape)",])) 
+  dist_escape_cov = RSF[[i]]$COV['dist_escape','dist_escape']
   
   c(elev, elev_cov, dist_escape, dist_escape_cov)
   
@@ -34,7 +125,7 @@ for(i in 1:length(rsf)){
                   "rsf_dist_escape_max", 
                   "rsf_dist_escape_cov")
   
-  res$individual.local.identifier <- rsf[[i]]@info$identity
+  res$individual.local.identifier <- RSF[[i]]@info$identity
   
   rsf_list[[i]] <- res
 }
@@ -76,6 +167,8 @@ load("./data/collar_data/collar_data_20241123.rda")
 load("./data/home_range/fire_goat_hr_movement_results_df_20241225.rda")
 load("./data/home_range/fire_goat_covariate_results.rda")
 load("./data/rsf/fire_goat_rsf_results_20241225.rda")
+
+load("./data/rsf/rsf_20250301.rda")
 
 # combined data ----
 results_df <- read.csv(file = "./data/full_data_results_20250225.csv")
