@@ -22,20 +22,27 @@ elev = raster('data/rasters/elev_25m.tif')
 dist_escape = raster('data/rasters/dist_escape_25m.tif')
 # Some rasters are not loaded in RAM and may be slow to process. See help("raster::readAll").
 
+# create a list of rasters
+r_list <- list(elev = elev, 
+               dist_escape = dist_escape)
+
+# #test for a single goat
+i <- 1
+DATA <- tel_data[[i]]
+akdes <- AKDES[[i]]
+RSF <- rsf.fit(DATA,akdes,R=r_list)
 
 
 
 #____________________________________________________________________
 # 8) RSF ----
 
-# create a list of rasters
-r_list <- list(elev = elev, 
-               dist_escape = dist_escape)
+
 
 # initialize empty list for storing
 RSF <- list()
 
-# Fit RSF models (needs to be raster object and not spatraster)
+# Fit RSF models (rasters needs to be raster object and not spatraster)
 START_rsf <- Sys.time()
 tic(msg = "rsf analysis")
 
@@ -48,7 +55,7 @@ for(i in 1:length(tel_data)){
   
   # Fit rsf
   RSF[[i]] <- rsf.fit(DATA,akdes, R=r_list)
-  
+  toc() # ~10.5, 16, 41 min each
 }
 names(RSF) <- names(tel_data)
 
