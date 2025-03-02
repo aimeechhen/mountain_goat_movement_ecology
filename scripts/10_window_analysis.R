@@ -19,7 +19,7 @@ library(terra)
 # load("data/collar_data/collar_data_20240703.rda")
 # load("data/collar_data/collar_data_20241123.rda")
 
-# Import combined collar data (original + new) ----
+# Import combined collar data (original + new)
 goat_data <- read.csv("./data/combined_goat_data_fire_period_all_years.csv")
 # formatting
 goat_data$timestamp = as.POSIXct(goat_data$timestamp, format = "%Y-%m-%d %H:%M:%S")
@@ -53,7 +53,7 @@ tel_data <- as.telemetry(dat, mark.rm = TRUE)
 
 
 #..................................................................
-# WINDOW PREP ----
+# B. WINDOW PREP ----
 #..................................................................
 
 # moving window analysis only, no extractions, save outputs, very basic
@@ -81,9 +81,9 @@ r_list <- list(elev = elev,
 #create folders
 folder_list <- c("fits_20250301", 
                  "akdes_20250301",
-                 "mean_speed_20250301",
-                 "insta_speed_20250301",
-                 "covariates_20250301",
+                 # "mean_speed_20250301",
+                 # "insta_speed_20250301",
+                 # "covariates_20250301",
                  "rsf_20250220")
 
 ## set directory path ----
@@ -118,7 +118,7 @@ for (folder in folder_list) {
 
 
 #//////////////////////////////////////////////////////////
-# WINDOW ANALYSIS ----
+# C. WINDOW ANALYSIS ----
 #//////////////////////////////////////////////////////////
 
 
@@ -163,11 +163,11 @@ for(g in 1:length(tel_data)){
                                                              DATA$longitude[1],
                                                              method = "fast"))) # fast method is used because all the data are in the same timezone, adjust if they cross timezone boundaries
   
-  # Set up list to store
+  # Set up list to store, running certain analyses at a time, commenting out the rest
   fits <- list()
   akdes <- list()
-  speed_mean <- list()
-  speeds_insta <- list()
+  # speed_mean <- list()
+  # speeds_insta <- list()
   # covariates <- data.frame(
   #   collar_id = character(length(times)),
   #   window_start <- as.POSIXct(rep(NA, length(times)), tz = "America/Vancouver"),
@@ -199,27 +199,27 @@ for(g in 1:length(tel_data)){
     # Indicate the iteration and window segment ----
     cat(bgMagenta(paste((i), "of", length(times), "iterations. Window segment:", 
                         WINDOW_START, "to", WINDOW_END, 
-                        "for mountain goat:", DATA@info[1]), "\n"))
+                        "for mountain goat:", DATA@info[1]), "-", goat_data$goat_name[which(goat_data$collar_id == DATA@info[1])][1], "\n"))
     cat(bgMagenta(paste0("Number of fixes in window segment subset: ", nrow(SUBSET), "\n")))
     
     # Process the subset if data is present
     tryCatch({
-      cat(bgBlue("movement models","\n"))
+      cat(bgBlue("processing movement models","\n"))
       GUESS <- ctmm.guess(SUBSET, interactive = FALSE)
       FITS <- try(ctmm.select(SUBSET, GUESS, trace = 3, cores = -1))
       
       
       if (inherits(FITS, "ctmm")) {
-        cat(bgBlue("movement models","\n"))
+        cat(bgBlue("processing home range","\n"))
         AKDES <- akde(SUBSET, FITS, weights = TRUE)
         
-        cat(bgBlue("movement models","\n"))
-        tic(msg = "speed analysis")
-        SPEED_MEAN <- speed(object = SUBSET, CTMM = FITS, robust = TRUE, units = FALSE, cores = -1)
-        SPEEDS_INSTA <- speeds(object = SUBSET, CTMM = FITS, robust = TRUE, units = FALSE, cores = -1)
-        toc()
+        # cat(bgBlue("movement models","\n"))
+        # tic(msg = "speed analysis")
+        # SPEED_MEAN <- speed(object = SUBSET, CTMM = FITS, robust = TRUE, units = FALSE, cores = -1)
+        # SPEEDS_INSTA <- speeds(object = SUBSET, CTMM = FITS, robust = TRUE, units = FALSE, cores = -1)
+        # toc()
         
-        cat(bgGreen("movement models","\n"))
+        cat(bgGreen("processing rsf","\n"))
         tic(msg = "rsf analysis")
         RSF <- rsf.fit(SUBSET, AKDES, R=r_list)
         toc() #~15min each
@@ -229,8 +229,8 @@ for(g in 1:length(tel_data)){
         # store models/UDs in a list, name the entry based on goat name and subset window start date, not the times[i] as that is in unix format
         fits[[paste0(DATA@info[1], "_", as.character(WINDOW_START))]] <- FITS
         akdes[[paste0(DATA@info[1], "_", as.character(WINDOW_START))]] <- AKDES
-        speed_mean[[paste0(DATA@info[1], "_", as.character(WINDOW_START))]] <- SPEED_MEAN
-        speeds_insta[[paste0(DATA@info[1], "_", as.character(WINDOW_START))]] <- SPEEDS_INSTA
+        # speed_mean[[paste0(DATA@info[1], "_", as.character(WINDOW_START))]] <- SPEED_MEAN
+        # speeds_insta[[paste0(DATA@info[1], "_", as.character(WINDOW_START))]] <- SPEEDS_INSTA
         rsf[[paste0(DATA@info[1], "_", as.character(WINDOW_START))]] <- RSF
         
         # # # habitat variables ----
@@ -265,11 +265,12 @@ for(g in 1:length(tel_data)){
   }
   
   # save all the outputs as a rds for future analysis ----
-  message(magenta(bgWhite(paste("saving output for goat", DATA@info[1]))))
+  cat(bgWhite(magenta(paste("saving output for goat", DATA@info[1], 
+                            goat_data$goat_name[which(goat_data$collar_id == DATA@info[1])][1]))), "\n")
   saveRDS(fits, file = paste0(dir_path, "fits_20250301/fits_", DATA@info[1], ".rds"))
   saveRDS(akdes, file = paste0(dir_path, "akdes_20250301/akdes_", DATA@info[1], ".rds"))
-  saveRDS(speed_mean, file = paste0(dir_path, "mean_speed_20250301/mean_speed_", DATA@info[1], ".rds"))
-  saveRDS(speeds_insta, file = paste0(dir_path, "insta_speed_20250301/insta_speed_", DATA@info[1], ".rds"))
+  # saveRDS(speed_mean, file = paste0(dir_path, "mean_speed_20250301/mean_speed_", DATA@info[1], ".rds"))
+  # saveRDS(speeds_insta, file = paste0(dir_path, "insta_speed_20250301/insta_speed_", DATA@info[1], ".rds"))
   # saveRDS(covariates, file = paste0(dir_path, "covariates_20250301/covariates_", DATA@info[1], ".rds")) # remember this is a df and not a list
   saveRDS(rsf, file = paste0(dir_path, "rsf_20250301/rsf_", DATA@info[1], ".rds"))
   
@@ -278,7 +279,7 @@ for(g in 1:length(tel_data)){
   # clean up environment
   rm(FITS,
      AKDES,
-     SPEED_MEAN, SPEEDS_INSTA,
+     # SPEED_MEAN, SPEEDS_INSTA,
      RSF)
   gc() # free up computational resources
   
