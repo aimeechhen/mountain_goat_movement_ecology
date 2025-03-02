@@ -118,7 +118,7 @@ for (folder in folder_list) {
 
 
 #//////////////////////////////////////////////////////////
-# window analysis ----
+# WINDOW ANALYSIS ----
 #//////////////////////////////////////////////////////////
 
 
@@ -141,6 +141,7 @@ START_window <- Sys.time()
 # outer for loop ----
 
 for(g in 1:length(tel_data)){
+  tic(msg = "single goat")
   # subset an individual out
   DATA <- tel_data[[g]]
   
@@ -199,26 +200,26 @@ for(g in 1:length(tel_data)){
     cat(bgMagenta(paste((i), "of", length(times), "iterations. Window segment:", 
                         WINDOW_START, "to", WINDOW_END, 
                         "for mountain goat:", DATA@info[1]), "\n"))
-    cat(paste0("Number of fixes in window segment subset: ", nrow(SUBSET), "\n"))
+    cat(bgMagenta(paste0("Number of fixes in window segment subset: ", nrow(SUBSET), "\n")))
     
     # Process the subset if data is present
     tryCatch({
-      message(green("movement models"))
+      cat(bgBlue("movement models","\n"))
       GUESS <- ctmm.guess(SUBSET, interactive = FALSE)
       FITS <- try(ctmm.select(SUBSET, GUESS, trace = 3, cores = -1))
       
       
       if (inherits(FITS, "ctmm")) {
-        message(green("home range analyses"))
+        cat(bgBlue("movement models","\n"))
         AKDES <- akde(SUBSET, FITS, weights = TRUE)
         
-        message(yellow("SPEED analyses"))
+        cat(bgBlue("movement models","\n"))
         tic(msg = "speed analysis")
         SPEED_MEAN <- speed(object = SUBSET, CTMM = FITS, robust = TRUE, units = FALSE, cores = -1)
         SPEEDS_INSTA <- speeds(object = SUBSET, CTMM = FITS, robust = TRUE, units = FALSE, cores = -1)
         toc()
         
-        message(green("rsf analyses"))
+        cat(bgGreen("movement models","\n"))
         tic(msg = "rsf analysis")
         RSF <- rsf.fit(SUBSET, AKDES, R=r_list)
         toc() #~15min each
@@ -264,7 +265,7 @@ for(g in 1:length(tel_data)){
   }
   
   # save all the outputs as a rds for future analysis ----
-  message(cyan(bgWhite(paste("saving output for goat", DATA@info[1]))))
+  message(magenta(bgWhite(paste("saving output for goat", DATA@info[1]))))
   saveRDS(fits, file = paste0(dir_path, "fits_20250301/fits_", DATA@info[1], ".rds"))
   saveRDS(akdes, file = paste0(dir_path, "akdes_20250301/akdes_", DATA@info[1], ".rds"))
   saveRDS(speed_mean, file = paste0(dir_path, "mean_speed_20250301/mean_speed_", DATA@info[1], ".rds"))
@@ -282,7 +283,7 @@ for(g in 1:length(tel_data)){
   gc() # free up computational resources
   
   # END OF OUTER LOOP, START AT TOP WITH A NEW GOAT
-  
+  toc()
   beep(8)
 }
 
