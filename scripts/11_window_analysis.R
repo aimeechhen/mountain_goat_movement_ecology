@@ -10,6 +10,7 @@ library(beepr)
 library(lubridate)
 library(crayon)
 library(terra)
+library(sf)
 
 
 #...............................................................
@@ -30,23 +31,47 @@ goat_data$collar_id <- as.factor(goat_data$collar_id)
 
 
 
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~
+# subset to test window analysis
+goats <- c("30575", "30613")
+goat_data <- goat_data[goat_data$collar_id %in% goats,]
+fire_start <- '2023-07-22' # doy = 203
+fire_end <- '2023-08-06' # doy = 299
+goat_data <- goat_data[goat_data$date >= fire_start & goat_data$date <= fire_end, ]
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+#format names to match required for ctmm based on Movebank critera:
+dat <- plyr::rename(goat_data, c('collar_id' = 'individual.local.identifier',
+                                 'latitude' = 'location.lat',
+                                 'longitude' = 'location.long'))
+
+#Convert to telemetry
+tel_data <- as.telemetry(dat, mark.rm = TRUE)
+
+
+
+
 #...............................................................
 # WINDOW DATA CHECK & PREP  ----
 #...............................................................
 
 # How to check if there are missing dates in your dataframe by counting the number of recordings and the number of days and comparing them, and troubleshoot the missing dates error
 
+
 # Convert 'timestamp' to Date format
-tel.dat$date <- as.Date(tel.dat$timestamp)
+goat_data$date <- as.Date(goat_data$timestamp)
 
 # Get a list of unique dates for each collar ID
-date_counts <- aggregate(date ~ individual.local.identifier, tel.dat, FUN = function(x) length(unique(x)))
+date_counts <- aggregate(date ~ collar_id, goat_data, FUN = function(x) length(unique(x)))
 
 # Get the total number of unique dates in the dataset for each collar ID
-total_dates <- aggregate(date ~ individual.local.identifier, tel.dat, FUN = function(x) length(unique(x)))
+total_dates <- aggregate(date ~ collar_id, goat_data, FUN = function(x) length(unique(x)))
 
 # Merge the two data frames to compare if there is at least one timestamp for every day for each collar ID
-result <- merge(date_counts, total_dates, by = "individual.local.identifier", suffixes = c("_count", "_total"))
+result <- merge(date_counts, total_dates, by = "collar_id", suffixes = c("_count", "_total"))
 
 # Check completeness
 result$complete <- result$date_count == result$date_total
@@ -62,12 +87,12 @@ print(result)
 ##How to check dates which are missing/duplicated and for each collar ----
 
 # Get unique collar IDs
-collar_ids <- unique(tel.dat$individual.local.identifier)
+collar_ids <- unique(goat_data$collar_id)
 
 # Loop through each collar ID and check for missing or duplicated dates
 for (id in collar_ids) {
   # Subset data for the current collar ID
-  subset_data <- tel.dat[tel.dat$individual.local.identifier == id, ]
+  subset_data <- goat_data[goat_data$collar_id == id, ]
   
   # Get unique dates for the current collar ID
   unique_dates <- unique(subset_data$date)
@@ -96,6 +121,8 @@ for (id in collar_ids) {
 # Collar ID: 30642 
 # Missing Dates: 2023-09-23, 2023-09-24, 2023-09-25, 2023-09-26, 2023-09-27 
 
+# combined data
+# Duplicated Dates: None
 
 
 
@@ -105,26 +132,6 @@ for (id in collar_ids) {
 
 
 
-#~~~~~~~~~~~~~~~~~~~~~~~~~~
-# subset to test window analysis
-# goats <- c("30575", "30613")
-# goat_data <- goat_data[goat_data$collar_id %in% goats,]
-# fire_start <- '2023-07-22' # doy = 203
-# fire_end <- '2023-10-26' # doy = 299
-# goat_data <- goat_data[goat_data$date >= fire_start & goat_data$date <= fire_end, ]
-# dat <- plyr::rename(goat_data, c('collar_id' = 'individual.local.identifier',
-#                                    'latitude' = 'location.lat',
-#                                    'longitude' = 'location.long'))
-#~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-
-#format names to match required for ctmm based on Movebank critera:
-dat <- plyr::rename(goat_data, c('collar_id' = 'individual.local.identifier',
-                                 'latitude' = 'location.lat',
-                                 'longitude' = 'location.long'))
-
-#Convert to telemetry
-tel_data <- as.telemetry(dat, mark.rm = TRUE)
 
 
 
@@ -159,7 +166,7 @@ folder_list <- c("fits_20250301",
                  "akdes_20250301",
                  # "mean_speed_20250301",
                  # "insta_speed_20250301",
-                 # "covariates_20250301",
+                 "covariates_20250301",
                  "rsf_20250220")
 
 ## set directory path ----
@@ -244,15 +251,15 @@ for(g in 1:length(tel_data)){
   akdes <- list()
   # speed_mean <- list()
   # speeds_insta <- list()
-  # covariates <- data.frame(
-  #   collar_id = character(length(times)),
-  #   window_start <- as.POSIXct(rep(NA, length(times)), tz = "America/Vancouver"),
-  #   window_end <- as.POSIXct(rep(NA, length(times)), tz = "America/Vancouver"),
-  #   n_fixes = numeric(length(times)),
-  #   mean_elev = numeric(length(times)),
-  #   mean_dist_escape = numeric(length(times))
-  # )
-  rsf <- list()
+  covariates <- data.frame( # use = instead of <- when making df, <- causes it to run the operation in the column
+    collar_id = character(length(times)),
+    window_start = as.POSIXct(rep(NA, length(times)), tz = "America/Vancouver"),
+    window_end = as.POSIXct(rep(NA, length(times)), tz = "America/Vancouver"),
+    n_fixes = numeric(length(times)),
+    mean_elev = numeric(length(times)),
+    mean_dist_escape = numeric(length(times))
+  )
+  # rsf <- list()
   
   #.......................................................................
   # Analysis on the window segment ----
@@ -295,10 +302,10 @@ for(g in 1:length(tel_data)){
         # SPEEDS_INSTA <- speeds(object = SUBSET, CTMM = FITS, robust = TRUE, units = FALSE, cores = -1)
         # toc()
         
-        cat(bgGreen("processing rsf","\n"))
-        tic(msg = "rsf analysis")
-        RSF <- rsf.fit(SUBSET, AKDES, R=r_list)
-        toc() #~15min each
+        # cat(bgGreen("processing rsf","\n"))
+        # tic(msg = "rsf analysis")
+        # RSF <- rsf.fit(SUBSET, AKDES, R=r_list)
+        # toc() #~15min each
         
         
         
@@ -307,22 +314,23 @@ for(g in 1:length(tel_data)){
         akdes[[paste0(DATA@info[1], "_", as.character(WINDOW_START))]] <- AKDES
         # speed_mean[[paste0(DATA@info[1], "_", as.character(WINDOW_START))]] <- SPEED_MEAN
         # speeds_insta[[paste0(DATA@info[1], "_", as.character(WINDOW_START))]] <- SPEEDS_INSTA
-        rsf[[paste0(DATA@info[1], "_", as.character(WINDOW_START))]] <- RSF
+        # rsf[[paste0(DATA@info[1], "_", as.character(WINDOW_START))]] <- RSF
         
-        # # # habitat variables ----
-        # SUBSET_SF <- as.sf(SUBSET)
-        # SUBSET_SF <- st_transform(SUBSET_SF, crs = st_crs("epsg:4326"))
-        # # #convert sf into spatvector object to be able to extract values, not needed if working with rasterlayer
-        # # locations <- vect(SUBSET_SF)
-        # # extract mean habitat values for each moving window segment (meters)
-        # covariates$collar_id[i] <- DATA@info$identity
-        # covariates$window_start[i] <- WINDOW_START
-        # covariates$window_end[i] <- WINDOW_END
-        # covariates$n_fixes[i] <- nrow(SUBSET)
-        # # covariates$mean_elev[i] <- mean(raster::extract(elev, locations)[,2])
-        # # covariates$mean_dist_escape[i] <- mean(raster::extract(dist_escape, locations)[,2])
-        # covariates$mean_elev[i] <- mean(raster::extract(elev, SUBSET_SF))         # changing locations to SUBSET_SF because of rasterlayer object and indexing isnt necessary
-        # covariates$mean_dist_escape[i] <- mean(raster::extract(dist_escape, SUBSET_SF))
+        # # habitat variables ----
+        cat(bgBlue("processing covariates","\n"))
+        SUBSET_SF <- as.sf(SUBSET)
+        SUBSET_SF <- st_transform(SUBSET_SF, crs = st_crs("epsg:4326"))
+        # #convert sf into spatvector object to be able to extract values, not needed if working with rasterlayer
+        # locations <- vect(SUBSET_SF)
+        # extract mean habitat values for each moving window segment (meters)
+        covariates$collar_id[i] <- DATA@info$identity
+        covariates$window_start[i] <- WINDOW_START
+        covariates$window_end[i] <- WINDOW_END
+        covariates$n_fixes[i] <- nrow(SUBSET)
+        # covariates$mean_elev[i] <- mean(raster::extract(elev, locations)[,2])
+        # covariates$mean_dist_escape[i] <- mean(raster::extract(dist_escape, locations)[,2])
+        covariates$mean_elev[i] <- mean(raster::extract(elev, SUBSET_SF))         # changing locations to SUBSET_SF because of rasterlayer object and indexing isnt necessary
+        covariates$mean_dist_escape[i] <- mean(raster::extract(dist_escape, SUBSET_SF))
 
 
         # END OF INNER LOOP
@@ -343,20 +351,20 @@ for(g in 1:length(tel_data)){
   # save all the outputs as a rds for future analysis ----
   cat(bgWhite(magenta(paste("saving output for goat", DATA@info[1], 
                             goat_data$goat_name[which(goat_data$collar_id == DATA@info[1])][1]))), "\n")
-  saveRDS(fits, file = paste0(dir_path, "fits_20250301/fits_", DATA@info[1], ".rds"))
-  saveRDS(akdes, file = paste0(dir_path, "akdes_20250301/akdes_", DATA@info[1], ".rds"))
+  # saveRDS(fits, file = paste0(dir_path, "fits_20250301/fits_", DATA@info[1], ".rds"))
+  # saveRDS(akdes, file = paste0(dir_path, "akdes_20250301/akdes_", DATA@info[1], ".rds"))
   # saveRDS(speed_mean, file = paste0(dir_path, "mean_speed_20250301/mean_speed_", DATA@info[1], ".rds"))
   # saveRDS(speeds_insta, file = paste0(dir_path, "insta_speed_20250301/insta_speed_", DATA@info[1], ".rds"))
-  # saveRDS(covariates, file = paste0(dir_path, "covariates_20250301/covariates_", DATA@info[1], ".rds")) # remember this is a df and not a list
-  saveRDS(rsf, file = paste0(dir_path, "rsf_20250301/rsf_", DATA@info[1], ".rds"))
+  saveRDS(covariates, file = paste0(dir_path, "covariates_20250301/covariates_", DATA@info[1], ".rds")) # remember this is a df and not a list
+  # saveRDS(rsf, file = paste0(dir_path, "rsf_20250301/rsf_", DATA@info[1], ".rds"))
   
   
   
   # clean up environment
-  rm(FITS,
-     AKDES,
-     # SPEED_MEAN, SPEEDS_INSTA,
-     RSF)
+  # rm(FITS,
+  #    AKDES,
+  #    # SPEED_MEAN, SPEEDS_INSTA,
+  #    RSF)
   gc() # free up computational resources
   
   # END OF OUTER LOOP, START AT TOP WITH A NEW GOAT
