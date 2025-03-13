@@ -5,11 +5,31 @@ library(ctmm)
 library(tictoc)
 library(beepr)
 
-# Import collar data as a ctmm telemetry object
-source('./scripts/source/import_data_as_ctmm_telemetry_object.R')
+
+#...........................................................
+# Import data ----
+#...........................................................
+
+# Import combined collar data (original + new)
+goat_data <- read.csv("./data/combined_goat_data_fire_period_all_years.csv")
+# formatting
+goat_data$timestamp = as.POSIXct(goat_data$timestamp, format = "%Y-%m-%d %H:%M:%S")
+goat_data$date = as.Date(goat_data$date, "%Y-%m-%d")
+goat_data$goat_name <- as.factor(goat_data$goat_name)
+goat_data$collar_id <- as.factor(goat_data$collar_id)
+
+#format names to match required for ctmm based on Movebank critera:
+# create a column combining collar_id and year to avoid needing to subset by individuals and year, it will create a unique identifier based on the individual and the year of the data and then those will be grouped together as the data for each individual for each year
+goat_data$individual.local.identifier <- paste(goat_data$collar_id, goat_data$year, sep = "_")
+# format names to match
+goat_data <- plyr::rename(goat_data, c('latitude' = 'location.lat', 
+                                       'longitude' = 'location.long'))
 
 # load movement models
 load("data/movement_model/fits_20250301.rda")
+
+
+#...........................................................
 
 
 # Estimate akdes home-range areas
