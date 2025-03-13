@@ -1,9 +1,15 @@
 
 library(tidyverse)
 library(ctmm)
+library(lubridate)
 
 # refer to: https://zslpublications.onlinelibrary.wiley.com/action/downloadSupplement?doi=10.1111%2Facv.12728&file=acv12728-sup-0002-AppendixS2.pdf
 # refer to: https://www.biorxiv.org/content/biorxiv/early/2021/07/24/2020.06.12.130195.full.pdf
+
+
+
+
+# LONG VERSION OF DATA CLEANING
 
 # import data ----
 new_collar <- read.csv("data/collar_data/raw_collar/Cathedral Goat locations Sept 2023 through Feb 10 2025.csv") %>%
@@ -456,10 +462,11 @@ outliers_rowname <- rbind(outliers_rowname, flagged)
 
 
 
+#/////////////////////////////////////////////////////////////////////
+# SHORT VERSION OF DATA CLEANING ----
+#/////////////////////////////////////////////////////////////////////
 
-#.....................................................................
 
-# streamlined ----
 library(dplyr)
 library(ctmm)
 
@@ -548,12 +555,14 @@ flagged <- rownames(goat[goat$x >= 2000 & goat$x <= 4000 &
                            goat$y >= 5000 & goat$y <= 6000, ]) # 8599
 telemetry.check$flag_outlier[rownames(telemetry.check) %in% flagged] <- 1
 
-
-
 sum(telemetry.check$flag_outlier) #126 flagged
-
-
 write.csv(telemetry.check, file = "data/collar_data/flagged_new_collar_data_20250218.csv", row.names = FALSE)
+
+
+
+#...................................................................................
+
+# import flagged outlier data
 
 telemetry.check <- read.csv(file = "data/collar_data/flagged_new_collar_data_20250218.csv")
 telemetry.check$timestamp <- as.POSIXct(telemetry.check$timestamp, format = "%Y-%m-%d %H:%M:%S", tz = "America/Vancouver")
@@ -573,16 +582,26 @@ save(new_collar, file = "data/collar_data/new_collar_data_20250218.rda")
 load("data/collar_data/new_collar_data_20250218.rda")
 
 
+#/////////////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////
+
+
+# CHECK VARIOGRAMS ON NEW DATA
 
 
 
 
 
-#.........................................................................
-# CLEANED NEW DATA PREP ----
-#.........................................................................
 
-# new collar data ----
+
+
+
+#______________________________________________________________________
+# Combine original and new cleaned data ----
+#______________________________________________________________________
+
+# cleaned new data prep
+# import cleaned new collar data ----
 load("data/collar_data/new_collar_data_20250218.rda")
 new_collar$collar_id <- as.factor(new_collar$collar_id)
 # drop columns that isn't needed 
@@ -594,7 +613,7 @@ goat_info$collar_id <- as.factor(goat_info$collar_id)
 # subset to only the fire goats
 goats <- c("goatzilla", "selena_goatmez", "the_goatmother", "goatileo", "toats_mcgoats", "vincent_van_goat")
 goat_info <- goat_info[goat_info$goat_name %in% goats,]
-new_collar <- merge(new_collar, goat_info[, c("goat_name", "goat_id", "collar_id")], by = "collar_id", all.x = TRUE)
+new_collar <- merge(new_collar, goat_info[, c("collar_id","goat_name", "goat_id")], by = "collar_id", all.x = TRUE)
 
 # str(new_collar)
 new_collar$goat_name <- as.factor(new_collar$goat_name)
@@ -610,6 +629,9 @@ new_collar$doy <- yday(new_collar$timestamp) #day of the year
 
 #.........................................................................
 # original collar data ----
+#.........................................................................
+
+# import original collar data
 load("data/collar_data/collar_data_20241123.rda")
 # specify which dataset its from
 collar_data$data_type <- "original_data"
@@ -626,9 +648,12 @@ collar_data <- collar_data[collar_data$goat_name %in% goats,]
 collar_data$goat_name <- as.factor(collar_data$goat_name)
 
 
-# combine data for full data
+#.........................................................................
+# combine data for full data ----
+#.........................................................................
+
 # combine two dataframes and match the same column names together and whatever columns are missing, they are just added and given NA values
-combined_data <- bind_rows(collar_data, new_collar)
+combined_data <- dplyr::bind_rows(collar_data, new_collar) # 55,457 fixes for 6 mountain goats
 
 # check for duplicates in the combined df, there probably (and should be) is because they have ~ month overlapping 
 # full_data[duplicated(full_data[, c("collar_id", "timestamp", "latitude", "longitude")]), ]
@@ -638,15 +663,21 @@ combined_data <- bind_rows(collar_data, new_collar)
 rm(collar_data, goat_info, dat)
 
 
+# reassigning back to fire_goats for workflow, this now contains original and new fire goat collar data
+# fire_goats <- new_collar
+#sort data by goat and timestamp
+combined_data <- combined_data[order(combined_data$collar_id, combined_data$timestamp), ]
+
+saveRDS(combined_data, file = "./data/collar_data/full_combined_data_20250309.rds")
+
+
 
 #...........................................................................
 ## fire period ----
 #...........................................................................
 
-# reassigning back to fire_goats for workflow, this now contains original and new fire goat collar data
-# fire_goats <- new_collar
-#sort data by goat and timestamp
-combined_data <- combined_data[order(combined_data$collar_id, combined_data$timestamp), ]
+# import full combined dataset
+combined_data <- readRDS("./data/collar_data/full_combined_data_20250309.rds")
 
 # Define the wildfire date range as per bc wildfire dates
 # July 22 to October 26
@@ -654,18 +685,30 @@ fire_start <- "07-22"
 fire_end <- "10-26"
 
 #subset goat data based on the date range of the crater creek wildfire across all years
-goat_data <- combined_data[combined_data$month_day >= fire_start & combined_data$month_day <= fire_end, ] #21892 obs
+goat_data <- combined_data[combined_data$month_day >= fire_start & combined_data$month_day <= fire_end, ] # 13884 fixes
 
 # check for NAs
-goat_data[complete.cases(goat_data$longitude, goat_data$latitude, goat_data$timestamp, goat_data$goat_name), ] #97
+goat_data[!complete.cases(goat_data$longitude, goat_data$latitude, goat_data$timestamp, goat_data$goat_name), ] #97
 # remove the rows that are full NA rows
 goat_data <- goat_data[complete.cases(goat_data$longitude, goat_data$latitude, goat_data$timestamp, goat_data$goat_name), ]
+
+# fire period total dataset: 13,787 fixes
+# yearly fixes total:
+goat_data_2019 <- goat_data[goat_data$year == "2019", ] # 1972
+goat_data_2020 <- goat_data[goat_data$year == "2020", ] # 2353
+goat_data_2021 <- goat_data[goat_data$year == "2021", ] # 2201
+goat_data_2022 <- goat_data[goat_data$year == "2022", ] # 2200
+goat_data_2023 <- goat_data[goat_data$year == "2023", ] # 2898
+goat_data_2024 <- goat_data[goat_data$year == "2024", ] # 2163
+
+
+
+
 
 #organize columns
 goat_data <- relocate(goat_data, c(collar_id, goat_name, goat_id), .before = timestamp)
 
 write.csv(goat_data, file = "./data/combined_goat_data_fire_period_all_years.csv", row.names = FALSE)
-goat_data <- read.csv("./data/combined_goat_data_fire_period_all_years.csv")
 
 
 
