@@ -1,10 +1,14 @@
 
 # Extract movement and home range results
 
+library(ctmm)
+library(tictoc)
+
+
 # data import ----
 load("data/movement_model/fits_20250301.rda")
-load("./data/movement_model/speed_mean_20250301.rda")
-load("./data/movement_model/speeds_insta_20250301.rda")
+# load("./data/movement_model/speed_mean_20250301.rda")
+# load("./data/movement_model/speeds_insta_20250301.rda")
 load("data/home_range/akdes_20250301.rda")
 
 
@@ -57,17 +61,6 @@ for (i in seq_along(FITS)) {
 summary_outputs <- aggregate(Freq ~ Var1, data = summary_outputs, FUN = sum)
 summary_outputs
 
-
-
-# Var1 Freq
-# 1 area (square kilometers)   10
-# 2 diffusion (hectares/day)   10
-# 3   speed (kilometers/day)   10
-# 4       τ[position] (days)    8
-# 5     τ[position] (months)    2
-# 6      τ[velocity] (hours)    1
-# 7    τ[velocity] (minutes)    9
-
 # Var1 Freq
 # 1             area (square meters)   35
 # 2 diffusion (square meters/second)   35
@@ -79,6 +72,10 @@ summary_outputs
 
 # if they are not the same units, therefore need to convert to make the units uniform across all individuals for sections that have mismatched units
 # i.e. diffusion, tau_p and tau_v sections
+
+#clean environment
+rm(summary, summary_outputs)
+
 
 
 #........................................................................
@@ -100,15 +97,16 @@ for (i in 1:length(AKDES)) {
 # inspect if all the units are the same (units = km²), units = FALSE, default units are m^2, but in the for loop with units = FALSE, it changed it to km² instead of keeping it in m²
 hr_size
 
+# inspect if any of them have different values in the brackets and create a table summing them
 table(sub(".*\\((.*)\\).*", "\\1", rownames(hr_size)))
 # square kilometers 
 # 35 
 
 
 
-#//////////////////////////////////////////////////////////////////
+#...................................................................
 # prep results dataframe ----
-#/////////////////////////////////////////////////////////////////
+#...................................................................
 
 #build results dataframe
 # RESULTS <- data.frame(goat_name = names(FITS))
@@ -132,10 +130,30 @@ for (i in 1:length(FITS)) {
   })
 }
 
+# # Import supplementary mountain goat info 
+# goat_info <- read.csv("data/goat_info.csv")
+# goat_info$collar_id <- as.factor(goat_info$collar_id)
+# # subset to only the fire goats
+# goats <- c("goatzilla", "selena_goatmez", "the_goatmother", "goatileo", "toats_mcgoats", "vincent_van_goat")
+# goat_info <- goat_info[goat_info$goat_name %in% goats,]
+
+
+
+
+
+
+
+#///////////////////////////////////////////////////////////
+# Extract results ----
+#///////////////////////////////////////////////////////////
+
+# Note: Using meta() from ctmm is meant for population level, group level purposes, not individual animals
+# variables can only be “area”, “diffusion”, “speed”, “tauposition”, “tauvelocity”, “distance”
+# for individual, get their results from their individual summary
 
 
 #.............................................................
-# home range results (units = km^2) ----
+## home range results (units = km^2) ----
 #.............................................................
 
 # if units are not consistent, therefore need to account for it
@@ -171,36 +189,8 @@ for (i in 1:length(AKDES)) {
 
 
 
-
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-## meta() hr ----
-# get mean home range size (km^2)
-#using the meta() from ctmm 
-
-hr_size <- data.frame()
-
-for (i in 1:length(AKDES)) {
-  # get hr size 
-  hr <- as.data.frame(ctmm::meta(AKDES[i]))
-  #hr <- as.data.frame(ctmm::meta(AKDES[i]), units = FALSE)
-  # subset to hr size row only
-  hr <- hr[1,]
-  # add to hr_size df
-  hr_size <- rbind(hr_size, hr)
-}
-
-# inspect if all the units are the same (units = km²), units = FALSE, default units are m^2, but in the for loop with units = FALSE, it changed it to km² instead of keeping it in m²
-hr_size
-# if theyre all the same then rename the columns and drop the rowname
-names(hr_size)[1] <- "mean_hr_min_km2"
-names(hr_size)[2] <- "mean_hr_est_km2"
-names(hr_size)[3] <- "mean_hr_max_km2"
-rownames(hr_size) <- NULL
-
-
-
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# get hr values from the summary
+# using summary()
 # extract then check method
 # 
 # #create a dataframe to store home range area statistics from the AKDE
@@ -224,7 +214,6 @@ rownames(hr_size) <- NULL
 # # save(hr_size, file = "data/home_range/hr_size.rda")
 # load("data/home_range/hr_size.rda")
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 
 
 
@@ -341,7 +330,26 @@ for (i in 1:length(FITS)) {
 
 toc() #~4min
 
-write.csv(RESULTS, file = "./data/full_data_results_20250225.csv", row.names = FALSE)
+
+
+#....................................................
+# Supplementary mountain goat information ----
+#....................................................
+
+
+# Import supplementary mountain goat info 
+goat_info <- read.csv("data/goat_info.csv")
+goat_info$collar_id <- as.factor(goat_info$collar_id)
+# subset to only the fire goats
+goats <- c("goatzilla", "selena_goatmez", "the_goatmother", "goatileo", "toats_mcgoats", "vincent_van_goat")
+goat_info <- goat_info[goat_info$goat_name %in% goats,]
+# add supplementary info to df
+RESULTS <- merge(RESULTS, goat_info[, c("collar_id","goat_name", "goat_id")], by = "collar_id", all.x = TRUE)
+RESULTS <- dplyr::relocate(RESULTS, c("collar_id","goat_name", "goat_id"), .before = year)
+
+write.csv(RESULTS, file = "./data/combined_data_movement_hr_results_20250301.csv", row.names = FALSE)
+RESULTS <- read.csv("./data/combined_data_movement_hr_results_20250301.csv")
+
 
 
 
@@ -355,7 +363,7 @@ write.csv(RESULTS, file = "./data/full_data_results_20250225.csv", row.names = F
 
 
 
-#get movement model that was best fit
+#get movement model type that was best fit
 model_type <- data.frame()
 for (i in 1:length(FITS)) {
   summary <- summary(FITS[[i]])$name
@@ -447,6 +455,7 @@ tau_p_results
 
 #............................................
 ## Get tau v estimates
+
 tau_v_results <- data.frame()
 # summary_outputs <- data.frame()
 
@@ -558,4 +567,93 @@ fits_results <- cbind(fits_results, speed_mean_results)
 #save df
 save(fits_results, file = "./data/movement_model/goat_fits_summary_20241226.rda")
 # load("./data/movement_model/goat_fits_summary_20241226.rda")
+
+
+
+
+
+
+
+#/////////////////////////////////////////
+# Using the meta() ----
+#/////////////////////////////////////////
+
+#using the meta() from ctmm
+# meant for population level, group level purposes, not individual animals
+# variables can only be “area”, “diffusion”, “speed”, “tauposition”, “tauvelocity”, “distance”
+
+# get mean home range size (km^2)
+
+hr_size <- data.frame()
+
+for (i in 1:length(AKDES)) {
+  # get hr size 
+  hr <- as.data.frame(ctmm::meta(AKDES[i]))
+  #hr <- as.data.frame(ctmm::meta(AKDES[i]), units = FALSE)
+  # subset to hr size row only
+  hr <- hr[1,]
+  # add to hr_size df
+  hr_size <- rbind(hr_size, hr)
+}
+
+# inspect if all the units are the same (units = km²), units = FALSE, default units are m^2, but in the for loop with units = FALSE, it changed it to km² instead of keeping it in m²
+hr_size
+# if theyre all the same then rename the columns and drop the rowname
+names(hr_size)[1] <- "mean_hr_min_km2"
+names(hr_size)[2] <- "mean_hr_est_km2"
+names(hr_size)[3] <- "mean_hr_max_km2"
+rownames(hr_size) <- NULL
+
+
+
+
+#............
+# using meta()
+diffusion_results <- data.frame()
+
+for (i in 1:length(FITS)) {
+  # get hr size 
+  res <- as.data.frame(ctmm::meta(FITS[i], units = FALSE, variable = "diffusion"))
+  #hr <- as.data.frame(ctmm::meta(AKDES[i]), units = FALSE)
+  # subset to first row
+  res <- res[1,]
+  # add to hr_size df
+  diffusion_results <- rbind(diffusion_results, res)
+}
+
+
+
+
+
+#............
+# using meta()
+tau_p_results <- data.frame()
+
+for (i in 1:length(FITS)) {
+  # get hr size 
+  res <- as.data.frame(ctmm::meta(FITS[i], units = FALSE, variable = "tauposition"))
+  #hr <- as.data.frame(ctmm::meta(AKDES[i]), units = FALSE)
+  # subset to first row
+  res <- res[1,]
+  # add to hr_size df
+  tau_p_results <- rbind(tau_p_results, res)
+}
+
+
+
+
+
+#............
+# using meta()
+tau_v_results <- data.frame()
+
+for (i in 1:length(FITS)) {
+  # get hr size 
+  res <- as.data.frame(ctmm::meta(FITS[i], units = FALSE, variable = "tauvelocity"))
+  #hr <- as.data.frame(ctmm::meta(AKDES[i]), units = FALSE)
+  # subset to first row
+  res <- res[1,]
+  # add to hr_size df
+  tau_v_results <- rbind(tau_v_results, res)
+}
 
