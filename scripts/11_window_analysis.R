@@ -36,8 +36,10 @@ goat_data$collar_id <- as.factor(goat_data$collar_id)
 # subset to test window analysis
 goats <- c("30575", "30613")
 goat_data <- goat_data[goat_data$collar_id %in% goats,]
-fire_start <- '2023-07-22' # doy = 203
-fire_end <- '2023-08-06' # doy = 299
+
+
+fire_start <- '2023-06-01' # doy = 203
+fire_end <- '2023-12-31' # doy = 299
 goat_data <- goat_data[goat_data$date >= fire_start & goat_data$date <= fire_end, ]
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -162,19 +164,20 @@ r_list <- list(elev = elev,
 
 
 #create folders
-folder_list <- c("fits_20250301", 
-                 "akdes_20250301",
-                 # "mean_speed_20250301",
-                 # "insta_speed_20250301",
-                 "covariates_20250301",
-                 "rsf_20250220")
+saving_date <- "20250313"
+folder_list <- c(paste0("fits_", saving_date), 
+                 paste0("akdes_", saving_date),
+                 paste0("mean_speed_", saving_date),
+                 paste0("insta_speed_", saving_date),
+                 paste0("covariates_", saving_date),
+                 paste0("rsf_", saving_date))
 
 ## set directory path ----
 # dir_path <- "./data/window_analysis/fire_goats/fire_period/basic/" # for only during the fire period with the 6 fire goats
 # dir_path <- "./data/window_analysis/fire_goats/basic/" # for all of the data but only of the 6 fire goats
 # dir_path <- "./data/window_analysis/" # for all goats for all data
 # dir_path <- "./data/window_analysis/fire_goats/full_data/" # for full data for the 6 fire goats
-dir_path <- "./data/window_analysis/combined_data/" 
+dir_path <- "./data/window_analysis/combined_data/buffer_dates/" # data range 2023-07-01 to 11-30
 # dir_path <- "./data/window_analysis/test/" # for full data, fire goats 
 
 
@@ -251,14 +254,14 @@ for(g in 1:length(tel_data)){
   akdes <- list()
   # speed_mean <- list()
   # speeds_insta <- list()
-  covariates <- data.frame( # use = instead of <- when making df, <- causes it to run the operation in the column
-    collar_id = character(length(times)),
-    window_start = as.POSIXct(rep(NA, length(times)), tz = "America/Vancouver"),
-    window_end = as.POSIXct(rep(NA, length(times)), tz = "America/Vancouver"),
-    n_fixes = numeric(length(times)),
-    mean_elev = numeric(length(times)),
-    mean_dist_escape = numeric(length(times))
-  )
+  # covariates <- data.frame( # use = instead of <- when making df, <- causes it to run the operation in the column
+  #   collar_id = character(length(times)),
+  #   window_start = as.POSIXct(rep(NA, length(times)), tz = "America/Vancouver"),
+  #   window_end = as.POSIXct(rep(NA, length(times)), tz = "America/Vancouver"),
+  #   n_fixes = numeric(length(times)),
+  #   mean_elev = numeric(length(times)),
+  #   mean_dist_escape = numeric(length(times))
+  # )
   # rsf <- list()
   
   #.......................................................................
@@ -296,7 +299,7 @@ for(g in 1:length(tel_data)){
         cat(bgBlue("processing home range","\n"))
         AKDES <- akde(SUBSET, FITS, weights = TRUE)
         
-        # cat(bgBlue("movement models","\n"))
+        # cat(bold(bgYellow("processing speeds","\n")))
         # tic(msg = "speed analysis")
         # SPEED_MEAN <- speed(object = SUBSET, CTMM = FITS, robust = TRUE, units = FALSE, cores = -1)
         # SPEEDS_INSTA <- speeds(object = SUBSET, CTMM = FITS, robust = TRUE, units = FALSE, cores = -1)
@@ -316,22 +319,22 @@ for(g in 1:length(tel_data)){
         # speeds_insta[[paste0(DATA@info[1], "_", as.character(WINDOW_START))]] <- SPEEDS_INSTA
         # rsf[[paste0(DATA@info[1], "_", as.character(WINDOW_START))]] <- RSF
         
-        # # habitat variables ----
-        cat(bgBlue("processing covariates","\n"))
-        SUBSET_SF <- as.sf(SUBSET)
-        SUBSET_SF <- st_transform(SUBSET_SF, crs = st_crs("epsg:4326"))
-        # #convert sf into spatvector object to be able to extract values, not needed if working with rasterlayer
-        # locations <- vect(SUBSET_SF)
-        # extract mean habitat values for each moving window segment (meters)
-        covariates$collar_id[i] <- DATA@info$identity
-        covariates$window_start[i] <- WINDOW_START
-        covariates$window_end[i] <- WINDOW_END
-        covariates$n_fixes[i] <- nrow(SUBSET)
-        # covariates$mean_elev[i] <- mean(raster::extract(elev, locations)[,2])
-        # covariates$mean_dist_escape[i] <- mean(raster::extract(dist_escape, locations)[,2])
-        covariates$mean_elev[i] <- mean(raster::extract(elev, SUBSET_SF))         # changing locations to SUBSET_SF because of rasterlayer object and indexing isnt necessary
-        covariates$mean_dist_escape[i] <- mean(raster::extract(dist_escape, SUBSET_SF))
-
+        # # # habitat variables ----
+        # cat(bgBlue("processing covariates","\n"))
+        # SUBSET_SF <- as.sf(SUBSET)
+        # SUBSET_SF <- st_transform(SUBSET_SF, crs = st_crs("epsg:4326"))
+        # # #convert sf into spatvector object to be able to extract values, not needed if working with rasterlayer
+        # # locations <- vect(SUBSET_SF)
+        # # extract mean habitat values for each moving window segment (meters)
+        # covariates$collar_id[i] <- DATA@info$identity
+        # covariates$window_start[i] <- WINDOW_START
+        # covariates$window_end[i] <- WINDOW_END
+        # covariates$n_fixes[i] <- nrow(SUBSET)
+        # # covariates$mean_elev[i] <- mean(raster::extract(elev, locations)[,2])
+        # # covariates$mean_dist_escape[i] <- mean(raster::extract(dist_escape, locations)[,2])
+        # covariates$mean_elev[i] <- mean(raster::extract(elev, SUBSET_SF))         # changing locations to SUBSET_SF because of rasterlayer object and indexing isnt necessary
+        # covariates$mean_dist_escape[i] <- mean(raster::extract(dist_escape, SUBSET_SF))
+        # 
 
         # END OF INNER LOOP
         
@@ -349,15 +352,25 @@ for(g in 1:length(tel_data)){
   }
   
   # save all the outputs as a rds for future analysis ----
-  cat(bgWhite(magenta(paste("saving output for goat", DATA@info[1], 
-                            goat_data$goat_name[which(goat_data$collar_id == DATA@info[1])][1]))), "\n")
-  # saveRDS(fits, file = paste0(dir_path, "fits_20250301/fits_", DATA@info[1], ".rds"))
-  # saveRDS(akdes, file = paste0(dir_path, "akdes_20250301/akdes_", DATA@info[1], ".rds"))
+  # cat(bgWhite(magenta(paste("saving output for goat", DATA@info[1], 
+  #                           goat_data$goat_name[which(goat_data$collar_id == DATA@info[1])][1]))), "\n")
+  # saveRDS(fits, file = paste0(dir_path, "fits_test/fits_", DATA@info[1], ".rds"))
+  # saveRDS(akdes, file = paste0(dir_path, "akdes_test/akdes_", DATA@info[1], ".rds"))
   # saveRDS(speed_mean, file = paste0(dir_path, "mean_speed_20250301/mean_speed_", DATA@info[1], ".rds"))
   # saveRDS(speeds_insta, file = paste0(dir_path, "insta_speed_20250301/insta_speed_", DATA@info[1], ".rds"))
-  saveRDS(covariates, file = paste0(dir_path, "covariates_20250301/covariates_", DATA@info[1], ".rds")) # remember this is a df and not a list
+  # saveRDS(covariates, file = paste0(dir_path, "covariates_20250301/covariates_", DATA@info[1], ".rds")) # remember this is a df and not a list
   # saveRDS(rsf, file = paste0(dir_path, "rsf_20250301/rsf_", DATA@info[1], ".rds"))
   
+  
+  # save all the outputs as a rds for future analysis ----
+  cat(bold(bgWhite(magenta(paste("saving output for goat", DATA@info[1], 
+                                 goat_data$goat_name[which(goat_data$collar_id == DATA@info[1])][1]))), "\n"))
+  # saveRDS(fits, file = paste0(dir_path, paste0("fits_", saving_date, "/fits_"), DATA@info[1], ".rds"))
+  # saveRDS(akdes, file = paste0(dir_path, paste0("akdes_", saving_date, "/akdes_"), DATA@info[1], ".rds"))
+  # saveRDS(speed_mean, file = paste0(dir_path, paste0("mean_speed_", saving_date, "/mean_speed_"), DATA@info[1], ".rds"))
+  # saveRDS(speeds_insta, file = paste0(dir_path, paste0("insta_speed_", saving_date, "/insta_speed_"), DATA@info[1], ".rds"))
+  # saveRDS(covariates, file = paste0(dir_path, paste0("covariates_", saving_date, "/covariates_"), DATA@info[1], ".rds")) # remember this is a df and not a list
+  saveRDS(rsf, file = paste0(dir_path, paste0("rsf_", saving_date, "/rsf_"), DATA@info[1], ".rds"))
   
   
   # clean up environment
@@ -369,7 +382,7 @@ for(g in 1:length(tel_data)){
   
   # END OF OUTER LOOP, START AT TOP WITH A NEW GOAT
   toc()
-  beep(8)
+  # beep(8)
 }
 
 
