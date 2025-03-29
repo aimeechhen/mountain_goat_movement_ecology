@@ -12,6 +12,7 @@ library(lubridate)
 library(tidyverse)
 library(glmmTMB)
 library(crayon)
+library(tictoc)
 
 
 #...........................................................
@@ -215,7 +216,8 @@ overlap_df <- relocate(overlap_df, c(name_A, name_B, sex_A, sex_B, sex_compariso
 
 
 #save
-save(object = overlap_df, file = "data/social/overlap_df.rda")
+dir.create("data/home_range/", recursive = TRUE, showWarnings = TRUE)
+save(object = overlap_df, file = "data/home_range/overlap_df.rda")
 
 
 
@@ -266,7 +268,8 @@ round(min(overlap_df$overlap_est[overlap_df$sex_comparison == "F-M"]), 2)
 round(max(overlap_df$overlap_est[overlap_df$sex_comparison == "F-M"]), 2)
 
 
-
+#clean up environment
+rm(min_val, max_val, squeeze_min, squeeze_max, HRO_test, HRO_test2, HRO_test_results)
 
 
 #............................................................
@@ -278,9 +281,12 @@ overlap_df$proximity_low <- NA
 overlap_df$proximity_est <- NA
 overlap_df$proximity_high <- NA
 
+tic(msg = "proximity")
+START_TIME <- Sys.time()
 
 #calculate the proximity statistics
 for(i in 1:nrow(hr_overlap$CI)){
+  tic(msg = "1 proximity loop")
   # Extract animal indices from columns 'anteater_A' and 'anteater_B'
   ANIMAL_A <- overlap_df[i, 'goat_A']
   ANIMAL_B <- overlap_df[i, 'goat_B']
@@ -292,12 +298,12 @@ for(i in 1:nrow(hr_overlap$CI)){
   # Use tryCatch to handle potential errors during the calculation of the proximity statistic
   prox <- tryCatch(
     {
-      # Attempt to calculate the proximity statistic using the proximity function
+      # Attempt to calculate the proximity statistic using the proximity function, disabling location error for speed
       PROXIMITY <- proximity(data = TEL_DATA, CTMM = MODELS, GUESS=ctmm(error=FALSE))},
     
     # If an error occurs during the try block, execute the error block
     error=function(err){
-      
+     
       # Print an error message indicating that an error occurred (added this line, issues running this code post pre-print version)
       cat("Error occurred at index", i, ": ", conditionMessage(err), "\n")
       
@@ -307,6 +313,7 @@ for(i in 1:nrow(hr_overlap$CI)){
       # Return the NA values
       return(PROXIMITY)
     }
+    toc()
   )
   
   # Assign the proximity values to the corresponding columns 
@@ -315,11 +322,323 @@ for(i in 1:nrow(hr_overlap$CI)){
   overlap_df[i, c("proximity_high")] <- PROXIMITY[3]
   
   # #save results to a csv file
-  write.csv(overlap_df, "data/social/proximity_data.csv", row.names = FALSE)
+  write.csv(overlap_df, "data/encounter/proximity_data.csv", row.names = FALSE)
   
   cat("finished index", i, "\n") # see the loop happening in real time
 }
 
+END_TIME <- Sys.time()
+toc()
 
 
 
+
+
+
+
+#add column to indicate which sexes that are being compared
+proximity_df <- mutate(overlap_df,
+                     sex_comparison = case_when(paste(sex_A, sex_B) == "F F" ~ "F-F",
+                                                paste(sex_A, sex_B) == "M M" ~ "M-M",
+                                                paste(sex_A, sex_B) == "F M" ~ "F-M",
+                                                paste(sex_A, sex_B) == "M F" ~ "F-M"))
+
+
+#add home range overlap data to proximity dataframe
+proximity_df <- left_join(overlap_df, proximity_df, by = c("goat_A", "goat_B",
+                                                           "sex_A", "sex_B",
+                                                           "age_A", "age_B",
+                                                           "sex_comparison"))
+
+#save proximity dataframe
+save(proximity_df, file = "data/encounter/proximity_df.rda")
+load("data/encounter/proximity_df.rda")
+
+#clean up environment
+rm(ANIMAL_A, ANIMAL_B, TEL_DATA, MODELS, prox, PROXIMITY)
+
+
+#............................................................
+# Proximity ratio results and analysis ----
+#............................................................
+
+#test for significance in sex, compare model with and without sex as a variable across all 121 dyads
+proximity_test <- glmer(proximity_est ~ sex_comparison + (1|site), family = Gamma(link = "log"), data = proximity_df)
+proximity_test2 <- glmer(proximity_est ~ 1 + (1|site), family = Gamma(link = "log"), data = proximity_df)
+proximity_test_results <- anova(proximity_test, proximity_test2)
+proximity_test_pvalue <- round(proximity_test_results$`Pr(>Chisq)`[2], 2) #p = 0.13
+
+prox_overlap_test <- glmer(proximity_est ~ overlap_est + (1|site), family = Gamma(link = "log"), data = proximity_df)
+prox_overlap_test2 <- glmer(proximity_est ~ 1 + (1|site), family = Gamma(link = "log"), data = proximity_df)
+prox_overlap_test_results <- anova(prox_overlap_test, prox_overlap_test2)
+prox_overlap_test_pvalue <- round(prox_overlap_test_results$`Pr(>Chisq)`[2], 2) #p = 0.03
+
+#test for significance in sex, compare model with and without sex as a variable
+proximity_test <- glmer(proximity_est ~ sex_comparison + (1|site), 
+                        family = Gamma(link = "log"), data = proximity_df)
+proximity_test2 <- glmer(proximity_est ~ 1 + (1|site), 
+                         family = Gamma(link = "log"), data = proximity_df)
+proximity_test_results <- anova(proximity_test, proximity_test2)
+proximity_test_results
+proximity_test_pvalue <- round(proximity_test_results$`Pr(>Chisq)`[2], 2) #p = 0.13
+proximity_test_pvalue
+
+#test for significance in home-range overlap, compare model with and without overlap as a variable
+prox_overlap_test <- glmer(proximity_est ~ overlap_est + (1|site), 
+                           family = Gamma(link = "log"), data = proximity_df)
+prox_overlap_test2 <- glmer(proximity_est ~ 1 + (1|site), 
+                            family = Gamma(link = "log"), data = proximity_df)
+prox_overlap_test_results <- anova(prox_overlap_test, prox_overlap_test2)
+prox_overlap_test_results
+prox_overlap_test_pvalue <- round(prox_overlap_test_results$`Pr(>Chisq)`[2], 2) #p = 0.03
+prox_overlap_test_pvalue
+
+
+# clean up environment
+rm(proximity_test, proximity_test2, prox_overlap_test, prox_overlap_test2, proximity_test, proximity_test2, proximity_test_results, prox_overlap_test, prox_overlap_test2, prox_overlap_test_results)
+
+
+#............................................................
+# Distance ----
+#............................................................
+
+# Script description: calculate the distances between individuals, sensitivity analysis, estimate encounters between individuals. encounter analysis
+
+#Calculate the distance statistics
+proximity_df$distance_low <- NA
+proximity_df$distance_est <- NA
+proximity_df$distance_high <- NA
+
+RES <- list()
+tic(msg = "distance analysis")
+for (i in 1:nrow(overlap_df)) {
+  tic(msg = "1 distance loop")
+  ANIMAL_A <- as.character(overlap_df[i, 'goat_A']) 
+  ANIMAL_B <- as.character(overlap_df[i, 'goat_B'])
+  TRACKING_DATA <- tel_data[c(ANIMAL_A, ANIMAL_B)]
+  MODELS <- list(FITS[[ANIMAL_A]], FITS[[ANIMAL_B]])
+  
+  DISTANCES_RES <- tryCatch({
+    distances_result <- distances(data = TRACKING_DATA, CTMM = MODELS, GUESS = ctmm(error = FALSE))
+    data.frame(pair_ID = paste(ANIMAL_A, ANIMAL_B, sep = "_"),
+               distance_low = distances_result$low, 
+               distance_est = distances_result$est, 
+               distance_high = distances_result$high,
+               t = distances_result$t,
+               timestamp = distances_result$timestamp)
+  }, error = function(err) {
+    data.frame(pair_ID = paste(ANIMAL_A, ANIMAL_B, sep = "_"),
+               distance_low = NA,
+               distance_est = NA,
+               distance_high = NA,
+               t = NA, 
+               timestamp = NA)
+  }
+  toc()
+  )
+  
+  RES[[i]] <- DISTANCES_RES
+  
+  #write.csv(RES, "data/DATA_distance.csv", row.names = FALSE)
+  cat("finished index", i, "\n")
+}
+toc()
+
+#Turn the list of list into a data frame
+DATA_DISTANCE <- do.call(rbind, RES)
+
+#save distance data
+save(DATA_DISTANCE, file = "data/encounter/distance_data.rda")
+
+#locate NA values within the dataframe
+DATA_DISTANCE[!complete.cases(DATA_DISTANCE), ] #3,502,701 observations
+#drop the 3 fixes that had no distance values 
+DATA_DISTANCE <- na.omit(DATA_DISTANCE) #3,502,698 observations
+
+#add overlap and proximity information to the distance dataframe
+distance_df <- merge(DATA_DISTANCE, proximity_df, by = "pair_ID")
+distance_df <- relocate(distance_df, c(distance_low, distance_est, distance_high,
+                                       t, timestamp), .after = proximity_high)
+
+#save the distance dataframe
+save(distance_df, file = "data/encounter/distance_df.rda")
+load("data/encounter/distance_df.rda")
+
+
+
+
+
+#............................................................
+# Encounter ----
+#............................................................
+
+#set encounter radius
+#larger the radius = more encounters can occur within that radius due to more individuals that can be within the radius (measurements are in meters)
+enc_radius <- 0:1000
+enc_count <- vector("numeric", length(enc_radius))
+
+#calculate the number of encounters occurring within each radius size
+for(i in 1:length(enc_radius)){
+  enc_count[i] <- sum(distance_df$distance_est < enc_radius[i])
+}
+
+#visualization
+plot(x = enc_radius, y = enc_count, type = "l")
+
+#...................................................
+
+#sensitivity analysis on female-male encounter significance
+encounter_radius_pvalue <- vector("numeric", length(enc_radius))
+pair_ID <- unique(overlap_df$pair_ID)
+
+#Loop over encounter radii
+for(i in 1:length(enc_radius)){
+  
+  res <- list()
+  
+  for (j in pair_ID){
+    subset_A <- distance_df[distance_df$pair_ID == j,]
+    
+    # Count the number of times "distance_est" is below some threshold distance i 
+    encounter_count <- sum(subset_A$distance_est < enc_radius[i])
+    
+    #save results
+    res[[j]] <- data.frame(encounter_count = encounter_count,
+                           overlap_est = subset_A$overlap_est[1],
+                           sex_comparison = subset_A$sex_comparison[1])
+  }
+  
+  res <- do.call(rbind, res)
+  
+  # test for significance 
+    encounter_radius_test <- try(glmer(encounter_count ~ overlap_est + sex_comparison + (1|site),
+                                     family = poisson(link = "log"), data = res, subset = res > 0))
+  encounter_radius_test2 <- try(glmer(encounter_count ~ 1 + (1|site), family = poisson(link = "log"), data = res, subset = res > 0))
+  encounter_radius_test_results <- try(anova(encounter_radius_test, encounter_radius_test2))
+  p_val <- try(encounter_radius_test_results$`Pr(>Chisq)`[2])
+  encounter_radius_pvalue[i] <- ifelse(class(p_val) == "try-error", NA, p_val)
+  
+  cat("finished index", i, "\n")
+}
+
+encounter_radius_df <- data.frame(x = enc_radius,
+                                  y = encounter_radius_pvalue)
+
+#save dataframe
+save(encounter_radius_df, file = "data/encounter/encounter_radius_df.rda")
+
+#visualization
+plot(y ~ x,
+     data = encounter_radius_df,
+     type = "l",
+     xlab = "Encounter radius (m)",
+     ylab = "p-value")
+abline(0.05, 0)
+
+
+#............................................................
+# Estimating encounters ----
+#............................................................
+
+#calculate total encounters of all individuals based on sex comparison type
+proximity_df$encounter_count <- NA
+pair_ID <- unique(proximity_df$pair_ID)
+
+for (i in pair_ID){
+  subset_A <- distance_df[distance_df$pair_ID == i,]
+  
+  # Count the number of times "distance_est" is below 15
+  encounter_count <- sum(subset_A$distance_est < 15)
+  
+  #save results
+  proximity_df[proximity_df$pair_ID == i, "encounter_count"] <- encounter_count
+  
+}
+
+#number of pairs that had 0 encounters
+proximity_df[proximity_df$encounter_count == 0,] #78
+#number of pairs that had at least 1 encounter
+proximity_df[proximity_df$encounter_count != 0,] #43
+
+#calculate the number of encounters based on threshold
+sum(proximity_df$encounter_count)
+sum(proximity_df$encounter_count[proximity_df$sex_comparison == "male-male"])
+sum(proximity_df$encounter_count[proximity_df$sex_comparison == "female-female"])
+sum(proximity_df$encounter_count[proximity_df$sex_comparison == "female-male"])
+
+#............................................................
+# Encounter results ----
+#............................................................
+
+#effect of sex and overlap on encounter rates (model that does not include 0 encounter counts)
+encounter_test <- glmer(encounter_count ~ overlap_est + sex_comparison + (1|site), family = poisson(link = "log"), data = proximity_df, subset = encounter_count > 0)
+encounter_test2 <- glmer(encounter_count ~ 1 + (1|site), family = poisson(link = "log"), data = proximity_df, subset = encounter_count > 0)
+encounter_test_results <- anova(encounter_test, encounter_test2)
+encounter_test_pvalue <- round(encounter_test_results$`Pr(>Chisq)`[2], 2)
+
+# amount of home-range overlap and the number of observed encounters (beta (B) = 4.86 ± 0.148, p = 0.00)
+summary(encounter_test)
+
+
+
+
+#............................................................
+# Proximity ratio deviations ----
+#............................................................
+
+# Script description: identify individuals of interest, deviated pairs analysis, caluculate distances between individuals in the deviated pairs, investigate correlative movement between those individuals, calculate mean correlative movement statistics
+
+
+#identify pairs that did not have a proximity ratio of 1
+proximity_above1 <- proximity_df[proximity_df$proximity_low > 1,]
+proximity_below1 <- proximity_df[proximity_df$proximity_high < 1,]
+
+#exclude pairs with a HR overlap of 0
+proximity_below1[proximity_below1$overlap_est < 0.0001,]
+proximity_below1 <- proximity_below1[!(proximity_below1$overlap_est < 0.0001),]
+
+#create a dataframe of the deviated pairs
+proximity_identified_pairs_df <- rbind(proximity_above1, proximity_below1)
+proximity_identified_pairs_df$pair_ID_number <- seq(from = 1, to = 12, by = 1)
+proximity_identified_pairs_df <- relocate(proximity_identified_pairs_df, pair_ID_number, .before = anteater_A)
+
+#correct the sex_comparison output to female-male
+proximity_identified_pairs_df <- mutate(proximity_identified_pairs_df,
+                                        sex_comparison = case_when(paste(Sex.A, Sex.B) == "Male Male" ~ "male-male",
+                                                                   paste(Sex.A, Sex.B) == "Female Female" ~ "female-female",
+                                                                   paste(Sex.A, Sex.B) == "Male Female" ~ "female-male",
+                                                                   paste(Sex.A, Sex.B) == "Female Male" ~ "female-male"))
+
+#clean up environment
+rm(proximity_above1, proximity_below1)
+
+#save identified pairs dataframe
+# save(proximity_identified_pairs_df, file = "data/encounter/proximity_identified_pairs_df.rda")
+load("data/encounter/proximity_identified_pairs_df.rda")
+
+#............................................................
+# Deviated pairs results ----
+#............................................................
+
+#number of pairs with a deviated proximity ratio based on sex comparison (ie. a proximity ratio value not equal to 1)
+table(proximity_identified_pairs_df$sex_comparison)
+
+# Proximity ratio sex analysis for identified pairs
+#test for significance in sex, compare model with and without sex as a variable
+proximity_test_pairs <- glmer(proximity_est ~ sex_comparison + (1|site), family = Gamma(link = "log"), data = proximity_identified_pairs_df)
+proximity_test2_pairs <- glmer(proximity_est ~ 1 + (1|site), family = Gamma(link = "log"), data = proximity_identified_pairs_df)
+proximity_test_results_pairs <- anova(proximity_test_pairs, proximity_test2_pairs)
+proximity_test_pvalue_pairs <- round(proximity_test_results_pairs$`Pr(>Chisq)`[2], 2) #0.16
+
+# Proximity and overlap analysis for identified pairs
+prox_overlap_test_pairs <- glmer(proximity_est ~ overlap_est + (1|site), family = Gamma(link = "log"), data = proximity_identified_pairs_df)
+prox_overlap_test2_pairs <- glmer(proximity_est ~ 1 + (1|site), family = Gamma(link = "log"), data = proximity_identified_pairs_df)
+prox_overlap_test_results_pairs <- anova(prox_overlap_test_pairs, prox_overlap_test2_pairs)
+prox_overlap_test_pvalue_pairs <- round(prox_overlap_test_results_pairs$`Pr(>Chisq)`[2], 2) #0.65
+
+
+#............................................................
+# Estimating distances of the deviated pairs ----
+#............................................................
+
+#subset telemetry data and fitted model for each pair
