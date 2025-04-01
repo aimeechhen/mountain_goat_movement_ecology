@@ -172,7 +172,7 @@ for (i in 1:num_matrices) {
   matrix_cube[[i]] <- matrix_layer
 }
 
-
+matrix_layer, overlap_result, matrix_cube
 # Merge all matrices (low, est, high)
 overlap_result <- matrix_cube[[1]] # extract one layer to start the df
 # add the other two extracted layers to the df
@@ -220,7 +220,7 @@ dir.create("data/home_range/", recursive = TRUE, showWarnings = TRUE)
 save(object = overlap_df, file = "data/home_range/overlap_df.rda")
 
 
-
+rm(hr_overlap, matrix_layer, overlap_result, matrix_cube, num_matrices, matrix_level, overlap_col_name)
 
 
 #............................................................
@@ -330,25 +330,8 @@ for(i in 1:nrow(hr_overlap$CI)){
 END_TIME <- Sys.time()
 toc()
 
+proximity_df <- overlap_df
 
-
-
-
-
-
-#add column to indicate which sexes that are being compared
-proximity_df <- mutate(overlap_df,
-                     sex_comparison = case_when(paste(sex_A, sex_B) == "F F" ~ "F-F",
-                                                paste(sex_A, sex_B) == "M M" ~ "M-M",
-                                                paste(sex_A, sex_B) == "F M" ~ "F-M",
-                                                paste(sex_A, sex_B) == "M F" ~ "F-M"))
-
-
-#add home range overlap data to proximity dataframe
-proximity_df <- left_join(overlap_df, proximity_df, by = c("goat_A", "goat_B",
-                                                           "sex_A", "sex_B",
-                                                           "age_A", "age_B",
-                                                           "sex_comparison"))
 
 #save proximity dataframe
 save(proximity_df, file = "data/encounter/proximity_df.rda")
@@ -405,14 +388,11 @@ rm(proximity_test, proximity_test2, prox_overlap_test, prox_overlap_test2, proxi
 # Script description: calculate the distances between individuals, sensitivity analysis, estimate encounters between individuals. encounter analysis
 
 #Calculate the distance statistics
-proximity_df$distance_low <- NA
-proximity_df$distance_est <- NA
-proximity_df$distance_high <- NA
 
 RES <- list()
 tic(msg = "distance analysis")
 for (i in 1:nrow(overlap_df)) {
-  tic(msg = "1 distance loop")
+  tic(msg = "distance loop")
   ANIMAL_A <- as.character(overlap_df[i, 'goat_A']) 
   ANIMAL_B <- as.character(overlap_df[i, 'goat_B'])
   TRACKING_DATA <- tel_data[c(ANIMAL_A, ANIMAL_B)]
@@ -434,9 +414,8 @@ for (i in 1:nrow(overlap_df)) {
                t = NA, 
                timestamp = NA)
   }
-  toc()
   )
-  
+  toc()
   RES[[i]] <- DISTANCES_RES
   
   #write.csv(RES, "data/DATA_distance.csv", row.names = FALSE)
@@ -446,19 +425,19 @@ toc()
 
 #Turn the list of list into a data frame
 DATA_DISTANCE <- do.call(rbind, RES)
-
 #save distance data
 save(DATA_DISTANCE, file = "data/encounter/distance_data.rda")
+load("data/encounter/distance_data.rda")
 
-#locate NA values within the dataframe
-DATA_DISTANCE[!complete.cases(DATA_DISTANCE), ] #3,502,701 observations
-#drop the 3 fixes that had no distance values 
-DATA_DISTANCE <- na.omit(DATA_DISTANCE) #3,502,698 observations
+
+
+#check for NA values within the dataframe
+DATA_DISTANCE[!complete.cases(DATA_DISTANCE), ] 
 
 #add overlap and proximity information to the distance dataframe
 distance_df <- merge(DATA_DISTANCE, proximity_df, by = "pair_ID")
-distance_df <- relocate(distance_df, c(distance_low, distance_est, distance_high,
-                                       t, timestamp), .after = proximity_high)
+distance_df <- relocate(distance_df, c(distance_low, distance_est, distance_high), .after = proximity_high)
+distance_df <- relocate(distance_df, c(timestamp, t), .after = sex_comparison)
 
 #save the distance dataframe
 save(distance_df, file = "data/encounter/distance_df.rda")
