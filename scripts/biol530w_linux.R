@@ -13,6 +13,7 @@ library(tidyverse)
 library(glmmTMB)
 library(crayon)
 library(tictoc)
+library(beepr)
 
 
 #...........................................................
@@ -57,7 +58,6 @@ library(tictoc)
 goat_data <- read.csv("./data/combined_goat_data_fire_period_all_years.csv")
 
 
-
 # formatting
 goat_data$timestamp = as.POSIXct(goat_data$timestamp, format = "%Y-%m-%d %H:%M:%S")
 goat_data$date = as.Date(goat_data$date, "%Y-%m-%d")
@@ -92,7 +92,7 @@ for(i in 1:length(tel_data)){
   GUESS <- ctmm.guess(DATA,CTMM=ctmm(error=FALSE),interactive=FALSE) # Error is off for now to speed up the process
   # fit movement models and select best fit
   FITS[[i]] <- ctmm.select(DATA, GUESS, trace = 3, cores=50)
-   # beep(8)
+  # beep(8)
   
 }
 
@@ -103,9 +103,9 @@ toc() #~1.46h, #9.698333 mins; full = ~12.5min
 END_movement <- Sys.time()
 
 
-dir.create("data/movement_model/", recursive = TRUE, showWarnings = TRUE)
-save(FITS,file="data/movement_model/fits_biol530w.rda")
-
+# dir.create("data/movement_model/", recursive = TRUE, showWarnings = TRUE)
+# save(FITS,file="data/movement_model/fits_biol530w.rda")
+load("data/movement_model/fits_biol530w.rda")
 
 #...........................................................
 # 2. Home range ----
@@ -123,18 +123,20 @@ toc() # 14.2 mins
 END_hr <- Sys.time()
 
 #save rda:
-dir.create("data/home_range/", recursive = TRUE, showWarnings = TRUE)
-save(AKDES,file="data/home_range/akdes_biol530w.rda")
-
-
-
+# dir.create("data/home_range/", recursive = TRUE, showWarnings = TRUE)
+# save(AKDES,file="data/home_range/akdes_biol530w.rda")
 load("data/home_range/akdes_biol530w.rda")
+
+
 
 
 
 #...........................................................
 # 2b. Overlap ----
 #...........................................................
+
+
+load("data/home_range/akdes_biol530w.rda")
 
 #calculate 95% AKDE home range overlap for a pairwise comparison
 hr_overlap <- overlap(AKDES, level = 0.95)
@@ -153,18 +155,18 @@ for (i in 1:num_matrices) {
   matrix_layer[upper.tri(matrix_layer, diag = TRUE)] <- NA
   #Create a new data frame based on the overlap values
   matrix_layer <- as.data.frame(matrix_layer)
-  #extract year from rowname
-  matrix_layer$year <-  sub(".*?_(.*)", "\\1", rownames(matrix_layer))
-  # Rename columns to remove year component for pivoting
-  colnames(matrix_layer) <- sub("^(.*?)_.*", "\\1", colnames(matrix_layer))
+  # #extract year from rowname
+  # matrix_layer$year <-  sub(".*?_(.*)", "\\1", rownames(matrix_layer))
+  # # Rename columns to remove year component for pivoting
+  # colnames(matrix_layer) <- sub("^(.*?)_.*", "\\1", colnames(matrix_layer))
   # extract collar_id from rowname
   matrix_layer$goat_A <- sub("^(.*?)_.*", "\\1", rownames(matrix_layer))
-  # Rename rows to remove year component for pivoting
-  rownames(matrix_layer) <- sub("^(.*?)_.*", "\\1", rownames(matrix_layer))
+  # # Rename rows to remove year component for pivoting
+  # rownames(matrix_layer) <- sub("^(.*?)_.*", "\\1", rownames(matrix_layer))
   overlap_col_name <- paste0('overlap_', matrix_level[i])
-  matrix_layer$year <- as.factor(matrix_layer$year)
+  # matrix_layer$year <- as.factor(matrix_layer$year)
   #Reshape the matrix from wide format (each goat as a column) to long format (one row per goat pair)
-  matrix_layer <- pivot_longer(matrix_layer, cols = -c(goat_A, year),
+  matrix_layer <- pivot_longer(matrix_layer, cols = -c(goat_A),
                                names_to = 'goat_B', values_to = overlap_col_name,
                                values_drop_na = TRUE) 
   matrix_layer <- as.data.frame(matrix_layer)
@@ -178,7 +180,7 @@ overlap_result <- matrix_cube[[1]] # extract one layer to start the df
 # add the other two extracted layers to the df
 for (i in 2:num_matrices) {
   overlap_result <- left_join(overlap_result, matrix_cube[[i]], 
-                              by = c("goat_A", "goat_B", "year"))
+                              by = c("goat_A", "goat_B"))
 }
 
 #create an empty dataframe for the results
@@ -246,8 +248,8 @@ overlap_df$overlap_est_squeezed <- ((overlap_df$overlap_est - min_val) / (max_va
 overlap_df <- relocate(overlap_df, overlap_est_squeezed, .after = overlap_high)
 
 #test for significance in sex, compare model with and without sex as a variable
-HRO_test <- glmmTMB(overlap_est_squeezed ~ sex_comparison + (1|year), family = beta_family(link = "logit"), data = overlap_df)
-HRO_test2 <- glmmTMB(overlap_est_squeezed ~ 1 + (1|year), family = beta_family(link = "logit"), data = overlap_df)
+HRO_test <- glmmTMB(overlap_est_squeezed ~ sex_comparison, family = beta_family(link = "logit"), data = overlap_df)
+HRO_test2 <- glmmTMB(overlap_est_squeezed ~ 1, family = beta_family(link = "logit"), data = overlap_df)
 HRO_test_results <- anova(HRO_test, HRO_test2)
 HRO_test_pvalue <- round(HRO_test_results$`Pr(>Chisq)`[2], 2)
 
@@ -290,7 +292,7 @@ for(i in 1:nrow(hr_overlap$CI)){
   # Extract animal indices from columns 'anteater_A' and 'anteater_B'
   ANIMAL_A <- overlap_df[i, 'goat_A']
   ANIMAL_B <- overlap_df[i, 'goat_B']
-
+  
   # Extract tracking data for the pair of animals
   TEL_DATA <- tel_data[c(ANIMAL_A, ANIMAL_B)] # extract animal by name, has extra layers .-. it doesnt work, that is why
   MODELS <- list(FITS[ANIMAL_A][[1]], FITS[ANIMAL_B][[1]])
@@ -303,7 +305,7 @@ for(i in 1:nrow(hr_overlap$CI)){
     
     # If an error occurs during the try block, execute the error block
     error=function(err){
-     
+      
       # Print an error message indicating that an error occurred (added this line, issues running this code post pre-print version)
       cat("Error occurred at index", i, ": ", conditionMessage(err), "\n")
       
@@ -332,16 +334,12 @@ toc()
 
 
 
-
-
-
-
 #add column to indicate which sexes that are being compared
 proximity_df <- mutate(overlap_df,
-                     sex_comparison = case_when(paste(sex_A, sex_B) == "F F" ~ "F-F",
-                                                paste(sex_A, sex_B) == "M M" ~ "M-M",
-                                                paste(sex_A, sex_B) == "F M" ~ "F-M",
-                                                paste(sex_A, sex_B) == "M F" ~ "F-M"))
+                       sex_comparison = case_when(paste(sex_A, sex_B) == "F F" ~ "F-F",
+                                                  paste(sex_A, sex_B) == "M M" ~ "M-M",
+                                                  paste(sex_A, sex_B) == "F M" ~ "F-M",
+                                                  paste(sex_A, sex_B) == "M F" ~ "F-M"))
 
 
 #add home range overlap data to proximity dataframe
@@ -511,9 +509,9 @@ for(i in 1:length(enc_radius)){
   res <- do.call(rbind, res)
   
   # test for significance 
-    encounter_radius_test <- try(glmer(encounter_count ~ overlap_est + sex_comparison + (1|site),
+  encounter_radius_test <- try(glmer(encounter_count ~ overlap_est + sex_comparison,
                                      family = poisson(link = "log"), data = res, subset = res > 0))
-  encounter_radius_test2 <- try(glmer(encounter_count ~ 1 + (1|site), family = poisson(link = "log"), data = res, subset = res > 0))
+  encounter_radius_test2 <- try(glmer(encounter_count ~ 1, family = poisson(link = "log"), data = res, subset = res > 0))
   encounter_radius_test_results <- try(anova(encounter_radius_test, encounter_radius_test2))
   p_val <- try(encounter_radius_test_results$`Pr(>Chisq)`[2])
   encounter_radius_pvalue[i] <- ifelse(class(p_val) == "try-error", NA, p_val)
@@ -562,17 +560,20 @@ proximity_df[proximity_df$encounter_count != 0,] #43
 
 #calculate the number of encounters based on threshold
 sum(proximity_df$encounter_count)
-sum(proximity_df$encounter_count[proximity_df$sex_comparison == "male-male"])
-sum(proximity_df$encounter_count[proximity_df$sex_comparison == "female-female"])
-sum(proximity_df$encounter_count[proximity_df$sex_comparison == "female-male"])
+sum(proximity_df$encounter_count[proximity_df$sex_comparison == "F-F"])
+sum(proximity_df$encounter_count[proximity_df$sex_comparison == "M-M"])
+sum(proximity_df$encounter_count[proximity_df$sex_comparison == "F-M"])
+
+
+
 
 #............................................................
 # Encounter results ----
 #............................................................
 
 #effect of sex and overlap on encounter rates (model that does not include 0 encounter counts)
-encounter_test <- glmer(encounter_count ~ overlap_est + sex_comparison + (1|site), family = poisson(link = "log"), data = proximity_df, subset = encounter_count > 0)
-encounter_test2 <- glmer(encounter_count ~ 1 + (1|site), family = poisson(link = "log"), data = proximity_df, subset = encounter_count > 0)
+encounter_test <- glmer(encounter_count ~ overlap_est + sex_comparison, family = poisson(link = "log"), data = proximity_df, subset = encounter_count > 0)
+encounter_test2 <- glmer(encounter_count ~ 1, family = poisson(link = "log"), data = proximity_df, subset = encounter_count > 0)
 encounter_test_results <- anova(encounter_test, encounter_test2)
 encounter_test_pvalue <- round(encounter_test_results$`Pr(>Chisq)`[2], 2)
 
@@ -604,10 +605,10 @@ proximity_identified_pairs_df <- relocate(proximity_identified_pairs_df, pair_ID
 
 #correct the sex_comparison output to female-male
 proximity_identified_pairs_df <- mutate(proximity_identified_pairs_df,
-                                        sex_comparison = case_when(paste(Sex.A, Sex.B) == "Male Male" ~ "male-male",
-                                                                   paste(Sex.A, Sex.B) == "Female Female" ~ "female-female",
-                                                                   paste(Sex.A, Sex.B) == "Male Female" ~ "female-male",
-                                                                   paste(Sex.A, Sex.B) == "Female Male" ~ "female-male"))
+                                        sex_comparison = case_when(paste(sex_A, sex_B) == "F F" ~ "F-F",
+                                                                   paste(sex_A, sex_B) == "M M" ~ "M-M",
+                                                                   paste(sex_A, sex_B) == "F M" ~ "F-M",
+                                                                   paste(sex_A, sex_B) == "M F" ~ "F-M"))
 
 #clean up environment
 rm(proximity_above1, proximity_below1)
@@ -625,14 +626,14 @@ table(proximity_identified_pairs_df$sex_comparison)
 
 # Proximity ratio sex analysis for identified pairs
 #test for significance in sex, compare model with and without sex as a variable
-proximity_test_pairs <- glmer(proximity_est ~ sex_comparison + (1|site), family = Gamma(link = "log"), data = proximity_identified_pairs_df)
-proximity_test2_pairs <- glmer(proximity_est ~ 1 + (1|site), family = Gamma(link = "log"), data = proximity_identified_pairs_df)
+proximity_test_pairs <- glmer(proximity_est ~ sex_comparison, family = Gamma(link = "log"), data = proximity_identified_pairs_df)
+proximity_test2_pairs <- glmer(proximity_est ~ 1, family = Gamma(link = "log"), data = proximity_identified_pairs_df)
 proximity_test_results_pairs <- anova(proximity_test_pairs, proximity_test2_pairs)
 proximity_test_pvalue_pairs <- round(proximity_test_results_pairs$`Pr(>Chisq)`[2], 2) #0.16
 
 # Proximity and overlap analysis for identified pairs
-prox_overlap_test_pairs <- glmer(proximity_est ~ overlap_est + (1|site), family = Gamma(link = "log"), data = proximity_identified_pairs_df)
-prox_overlap_test2_pairs <- glmer(proximity_est ~ 1 + (1|site), family = Gamma(link = "log"), data = proximity_identified_pairs_df)
+prox_overlap_test_pairs <- glmer(proximity_est ~ overlap_est, family = Gamma(link = "log"), data = proximity_identified_pairs_df)
+prox_overlap_test2_pairs <- glmer(proximity_est ~ 1, family = Gamma(link = "log"), data = proximity_identified_pairs_df)
 prox_overlap_test_results_pairs <- anova(prox_overlap_test_pairs, prox_overlap_test2_pairs)
 prox_overlap_test_pvalue_pairs <- round(prox_overlap_test_results_pairs$`Pr(>Chisq)`[2], 2) #0.65
 
