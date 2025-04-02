@@ -60,6 +60,7 @@ plot(goat)
 OUTLIERS_RAW <- outlie(goat, family="serif") # units: speed m/s, distance m
 plot(OUTLIERS_RAW, family="serif") # inspect plot units
 dev.off()
+par(mfrow=c(1,1))
 
 # units from the plot are cm/s but in the output is in m/s
 # # create a speed cm/s to m/s to match the plot output numerical values for easier interpretation when flagging
@@ -77,16 +78,16 @@ nrow(OUTLIERS_RAW[OUTLIERS_RAW$flag_outlier == 1,])
 flagged <- rownames(OUTLIERS_RAW[OUTLIERS_RAW$flag_outlier == 1,])
 
 # location checks, point 485 is included from above
-# plot(goat[-10:10 + which(goat$x >= 4000 & goat$x <= 6000 &
-#                            goat$y <= -5000), ])
-# test <- goat[-10:10 + which(goat$x >= 4000 & goat$x <= 6000 &
-#                               goat$y <= -5000), ] #NOT SURE WHAT OT MAKE OF THIS, NEED EXTRA HELP
-# 
-# 
-# plot(goat[-10:10 + which(goat$x >= 6000 &
-#                            goat$y >= -1000), ])
-# test <- goat[-10:10 + which(goat$x >= 6000 &
-#                               goat$y >= -1000), ]
+plot(goat[-10:10 + which(goat$x >= 4000 & goat$x <= 6000 &
+                           goat$y <= -5000), ])
+test <- goat[-10:10 + which(goat$x >= 4000 & goat$x <= 6000 &
+                              goat$y <= -5000), ] #NOT SURE WHAT OT MAKE OF THIS, NEED EXTRA HELP
+
+
+plot(goat[-10:10 + which(goat$x >= 6000 &
+                           goat$y >= -1000), ])
+test <- goat[-10:10 + which(goat$x >= 6000 &
+                              goat$y >= -1000), ]
 # rowname 485
 
 # exclude all the points that are flagged
@@ -148,8 +149,8 @@ nrow(OUTLIERS_RAW[OUTLIERS_RAW$flag_outlier == 1,])
 flagged <- rownames(OUTLIERS_RAW[OUTLIERS_RAW$flag_outlier == 1,])
 
 # location check
-# plot(goat[-10:10 + which(goat$x >= 4000 & goat$x <= 6000 &
-#                            goat$y <= -5000), ])
+plot(goat[-10:10 + which(goat$x >= 4000 & goat$x <= 6000 &
+                           goat$y <= -5000), ])
 
 
 # exclude all the points that are flagged
@@ -472,11 +473,7 @@ library(ctmm)
 
 
 new_collar <- read.csv("data/collar_data/raw_collar/Cathedral Goat locations Sept 2023 through Feb 10 2025.csv") %>%
-  janitor::clean_names() #%>% #remove unnecessary characters ("[", " ", etc.) and replace with "_" 
-# as.data.frame()
-
-# acq_time_utc = GPS fix acquisition time (actual recorded fix time)
-# scts_utc = data is sent or received to Iridium satellite network (origin column), i.e., sent to system .-. after acquisition time
+  janitor::clean_names() #remove unnecessary characters ("[", " ", etc.) and replace with "_" 
 
 # drop animal column or error will occur when trying to convert to a ctmm telemetry object, and drop columns that provide duplicate information such as collar number
 new_collar <- subset(new_collar, select = -c(animal, collar_name))
@@ -566,6 +563,32 @@ write.csv(telemetry.check, file = "data/collar_data/flagged_new_collar_data_2025
 
 telemetry.check <- read.csv(file = "data/collar_data/flagged_new_collar_data_20250218.csv")
 telemetry.check$timestamp <- as.POSIXct(telemetry.check$timestamp, format = "%Y-%m-%d %H:%M:%S", tz = "America/Vancouver")
+
+fire_start <- '07-22' # doy = 203
+fire_end <- '10-26' # doy = 299
+
+d <- telemetry.check
+# d$timestamp <- as.POSIXct(d$timestamp, format = "%Y-%m-%d %H:%M:%S", tz = "America/Vancouver")
+d$date <- as.Date(d$timestamp)
+d$year <- year(d$timestamp)
+d$month <- month(d$timestamp, label = FALSE) #label = false for numerical month
+d$day <- day(d$timestamp)
+d$month_day <- format(d$timestamp, "%m-%d")
+d$doy <- yday(d$timestamp) #day of the year
+d$date = as.Date(d$date, "%Y-%m-%d")
+
+
+
+# how many points during the fire period across all years
+test <- d[d$month_day >= fire_start & d$month_day <= fire_end, ] # 3540 gps points
+#identify rowsnames that has "NA" in it
+nrow(test[grepl("NA", rownames(test)),]) # 98 na rows
+# drop those rows
+test <- test[!grepl("NA", rownames(test)),]
+
+# how many have been flagged?
+nrow(test[!test$flag_outlier == 0,]) #31
+
 
 # dropped all flagged outliers from the dataset
 new_collar <- telemetry.check[telemetry.check$flag_outlier == 0,] # 126 fixes not included
@@ -709,6 +732,9 @@ goat_data_2024 <- goat_data[goat_data$year == "2024", ] # 2163
 goat_data <- relocate(goat_data, c(collar_id, goat_name, goat_id), .before = timestamp)
 
 write.csv(goat_data, file = "./data/combined_goat_data_fire_period_all_years.csv", row.names = FALSE)
+
+
+
 
 
 
