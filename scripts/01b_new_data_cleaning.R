@@ -371,9 +371,9 @@ animal$collar_id <- names(tel_data)[3]
 collar_id <- names(tel_data)[3]
 
 # Step 1: Inspect the data 
-# png(file = paste0("figures/outlie_checks/raw_check_", collar_id, ".png"), width = 14, height = 6, units = "in", res = 600)
+png(file = paste0("figures/outlie_checks/raw_check_", collar_id, ".png"), width = 14, height = 6, units = "in", res = 600)
 outlie_check <- outlier_plots(animal, return = TRUE) #outlier_plot(x), x is a single individual telemetry ctmm data
-# dev.off()
+dev.off()
 #overlay tracking data on a map
 raw_tracks <- movement_map(animal)
 # save an image of the plot
@@ -390,9 +390,7 @@ flagged <- rownames(outlie_check[outlie_check$flag_outlier == 1,])
 # exclude all the points that are flagged
 flag_check <- animal[!(rownames(animal) %in% flagged), ]
 # re-check the data with the dropped flagged points
-# png(file = paste0("figures/outlie_checks/clean_check_", collar_id, ".png"), width = 14, height = 6, units = "in", res = 600)
 recheck <- outlier_plots(flag_check) #outlier_plot(x), x is a single individual telemetry ctmm data 
-# dev.off()
 
 # Step 4: change those rows to 1 and add flagged rows to running list
 # add to list
@@ -485,6 +483,15 @@ outlier_rows <- c(outlier_rows, part2)
 # then take all the points that have been flagged and add them to the outlie data and assign them a 1 if its in the list and leave them as is if they are not
 outlie_data$flag_outlier <- ifelse(rownames(outlie_data) %in% outlier_rows, 1, outlie_data$flag_outlier)
 
+# moving onto next individual, save plot
+png(file = paste0("figures/outlie_checks/clean_check_", collar_id, ".png"), width = 14, height = 6, units = "in", res = 600)
+recheck <- outlier_plots(flag_check) #outlier_plot(x), x is a single individual telemetry ctmm data 
+dev.off()
+#overlay tracking data on a map
+clean_tracks <- movement_map(flag_check)
+# save an image of the plot
+mapshot(clean_tracks, file = paste0("./figures/outlie_checks/clean_tracks_", collar_id, ".png"))
+
 #clean up environment
 rm(animal, flag_check, outlie_check, point_check, recheck, flagged, collar_id, outlier_rows, part1, part2)
 
@@ -507,9 +514,9 @@ animal$collar_id <- names(tel_data)[4]
 collar_id <- names(tel_data)[4]
 
 # Step 1: Inspect the data 
-# png(file = paste0("figures/outlie_checks/raw_check_", collar_id, ".png"), width = 14, height = 6, units = "in", res = 600)
+png(file = paste0("figures/outlie_checks/raw_check_", collar_id, ".png"), width = 14, height = 6, units = "in", res = 600)
 outlie_check <- outlier_plots(animal, return = TRUE) #outlier_plot(x), x is a single individual telemetry ctmm data
-# dev.off()
+dev.off()
 #overlay tracking data on a map
 raw_tracks <- movement_map(animal)
 # save an image of the plot
@@ -526,9 +533,7 @@ flagged <- rownames(outlie_check[outlie_check$flag_outlier == 1,])
 # exclude all the points that are flagged
 flag_check <- animal[!(rownames(animal) %in% flagged), ]
 # re-check the data with the dropped flagged points
-# png(file = paste0("figures/outlie_checks/clean_check_", collar_id, ".png"), width = 14, height = 6, units = "in", res = 600)
 recheck <- outlier_plots(flag_check) #outlier_plot(x), x is a single individual telemetry ctmm data 
-# dev.off()
 
 # Step 4: change those rows to 1 and add flagged rows to running list
 # add to list
@@ -700,9 +705,9 @@ animal$collar_id <- names(tel_data)[5]
 collar_id <- names(tel_data)[5]
 
 # Step 1: Inspect the data 
-# png(file = paste0("figures/outlie_checks/raw_check_", collar_id, ".png"), width = 14, height = 6, units = "in", res = 600)
+png(file = paste0("figures/outlie_checks/raw_check_", collar_id, ".png"), width = 14, height = 6, units = "in", res = 600)
 outlie_check <- outlier_plots(animal, return = TRUE) #outlier_plot(x), x is a single individual telemetry ctmm data
-# dev.off()
+dev.off()
 #overlay tracking data on a map
 raw_tracks <- movement_map(animal)
 # save an image of the plot
@@ -719,9 +724,7 @@ flagged <- rownames(outlie_check[outlie_check$flag_outlier == 1,])
 # exclude all the points that are flagged
 flag_check <- animal[!(rownames(animal) %in% flagged), ]
 # re-check the data with the dropped flagged points
-# png(file = paste0("figures/outlie_checks/clean_check_", collar_id, ".png"), width = 14, height = 6, units = "in", res = 600)
 recheck <- outlier_plots(flag_check) #outlier_plot(x), x is a single individual telemetry ctmm data 
-# dev.off()
 
 # Step 4: change those rows to 1 and add flagged rows to running list
 # add to list
@@ -818,9 +821,9 @@ animal$collar_id <- names(tel_data)[6]
 collar_id <- names(tel_data)[6]
 
 # Step 1: Inspect the data 
-# png(file = paste0("figures/outlie_checks/raw_check_", collar_id, ".png"), width = 14, height = 6, units = "in", res = 600)
+png(file = paste0("figures/outlie_checks/raw_check_", collar_id, ".png"), width = 14, height = 6, units = "in", res = 600)
 outlie_check <- outlier_plots(animal, return = TRUE) #outlier_plot(x), x is a single individual telemetry ctmm data
-# dev.off()
+dev.off()
 #overlay tracking data on a map
 raw_tracks <- movement_map(animal)
 # save an image of the plot
@@ -837,9 +840,7 @@ flagged <- rownames(outlie_check[outlie_check$flag_outlier == 1,])
 # exclude all the points that are flagged
 flag_check <- animal[!(rownames(animal) %in% flagged), ]
 # re-check the data with the dropped flagged points
-# png(file = paste0("figures/outlie_checks/clean_check_", collar_id, ".png"), width = 14, height = 6, units = "in", res = 600)
 recheck <- outlier_plots(flag_check) #outlier_plot(x), x is a single individual telemetry ctmm data 
-# dev.off()
 
 # Step 4: change those rows to 1 and add flagged rows to running list
 # add to list
