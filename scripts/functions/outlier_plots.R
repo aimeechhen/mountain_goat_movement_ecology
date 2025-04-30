@@ -1,4 +1,4 @@
-source('functions/find_angle.R')
+source('scripts/functions/find_angle.R')
 # note this has been modified from the original script by stefano. plot titles were added.
 
 outlier_plots <- function(telemetry, units = FALSE, ci_level = 0,

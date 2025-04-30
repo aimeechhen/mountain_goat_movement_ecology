@@ -1,3 +1,7 @@
+#...............................................................
+# turn angle calculations ----
+#...............................................................
+
 # function to calculate angle between three points
 find_angle <- function(x, y, radians = FALSE) {
   if(length(x) != length((y))) stop('x and y must be the same length.\n')
@@ -36,7 +40,11 @@ find_angle <- function(x, y, radians = FALSE) {
   }
 }
 
-# test the function
+
+#...............................................................
+# test the function ----
+#...............................................................
+
 if(FALSE) {
   x <- c(0, 0, 1, 0.5)
   y <- c(1, 0, 0, 0.5)

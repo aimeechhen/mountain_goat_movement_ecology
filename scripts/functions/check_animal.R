@@ -1,4 +1,4 @@
-source('functions/outlier_plots.R')
+source('scripts/functions/outlier_plots.R')
 
 #' function to run `outlie_plots()` for a given animal
 check_animal <- function(id, UERE = NULL, return_out = TRUE, ...) {
@@ -16,3 +16,5 @@ check_animal <- function(id, UERE = NULL, return_out = TRUE, ...) {
   
   outlier_plots(tel, return = return_out, ...)
 }
+
+
