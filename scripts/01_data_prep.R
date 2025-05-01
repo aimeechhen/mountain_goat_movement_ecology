@@ -209,13 +209,13 @@ load("data/collar_data/collar_data_20241123.rda")
 # How to check if there are missing dates in your dataframe by counting the number of recordings and the number of days and comparing them, and troubleshoot the missing dates error
 
 # Convert 'timestamp' to Date format
-tel.dat$date <- as.Date(tel.dat$timestamp)
+tel_data$date <- as.Date(tel_dat$timestamp)
 
 # Get a list of unique dates for each collar ID
-date_counts <- aggregate(date ~ individual.local.identifier, tel.dat, FUN = function(x) length(unique(x)))
+date_counts <- aggregate(date ~ individual.local.identifier, tel_data, FUN = function(x) length(unique(x)))
 
 # Get the total number of unique dates in the dataset for each collar ID
-total_dates <- aggregate(date ~ individual.local.identifier, tel.dat, FUN = function(x) length(unique(x)))
+total_dates <- aggregate(date ~ individual.local.identifier, tel_data, FUN = function(x) length(unique(x)))
 
 # Merge the two data frames to compare if there is at least one timestamp for every day for each collar ID
 result <- merge(date_counts, total_dates, by = "individual.local.identifier", suffixes = c("_count", "_total"))
@@ -231,15 +231,15 @@ print(result)
 #...................................................
 # the number of dates counted are not the same for all the collars
 
-##How to check dates which are missing/duplicated and for each collar ----
+#How to check dates which are missing/duplicated and for each collar ----
 
 # Get unique collar IDs
-collar_ids <- unique(tel.dat$individual.local.identifier)
+collar_ids <- unique(tel_dat$individual.local.identifier)
 
 # Loop through each collar ID and check for missing or duplicated dates
 for (id in collar_ids) {
   # Subset data for the current collar ID
-  subset_data <- tel.dat[tel.dat$individual.local.identifier == id, ]
+  subset_data <- tel_data[tel_data$individual.local.identifier == id, ]
   
   # Get unique dates for the current collar ID
   unique_dates <- unique(subset_data$date)
