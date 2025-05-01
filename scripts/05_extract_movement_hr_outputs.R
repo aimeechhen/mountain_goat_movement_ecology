@@ -256,6 +256,7 @@ for (i in 1:length(FITS)) {
   
   #..............................................
   ## tau_p
+  # tau-p is the ~time it takes to cross your home range
   # si units are seconds, convert into days
   if ("τ[position] (seconds)" %in% rownames(summary(FITS[[i]], units = FALSE)$CI)) {
     
@@ -283,6 +284,7 @@ for (i in 1:length(FITS)) {
   
   #..............................................
   ## tau_v
+  # tau-p is the ~time it takes to cross your home range
   # si units are seconds, convert to minutes
   if ("τ[velocity] (seconds)" %in% rownames(summary(FITS[[i]], units = FALSE)$CI)) {
     
@@ -426,6 +428,8 @@ diffusion_results
 # Get position and velocity (tau p and tau v)
 # OU-mini f Tau isnt separated into Tau position/tau velocity, it cannot distinguish between velocity and auto-corr (auto-corr position and auto-corr velocity, model is saying they're just going straight)
 
+# tau-p is the ~time it takes to cross your home range
+
 ## Get tau p estimates
 tau_p_results <- data.frame()
 
@@ -455,6 +459,9 @@ tau_p_results
 
 #............................................
 ## Get tau v estimates
+
+# tau-v is how long (in time, not distance) you're going in a straight line before turning, for far you're going before turning is ballistic length scales (bls) which uses tau-v in its calculation
+# high tau-v value = higher the time spent going in a straight light
 
 tau_v_results <- data.frame()
 # summary_outputs <- data.frame()
