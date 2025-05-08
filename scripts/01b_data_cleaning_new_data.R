@@ -1,5 +1,5 @@
 
-
+# 2025-04-30
 
 library(tidyverse)
 library(ctmm)
@@ -33,7 +33,7 @@ raw_data <- read.csv("data/collar_data/raw_collar/Cathedral Goat locations Sept 
 raw_data <- subset(raw_data, select = -c(animal, collar_name, scts_utc))
 raw_data$acq_time_utc <- as.POSIXct(raw_data$acq_time_utc)
 raw_data$collar_id <- as.factor(raw_data$collar_id)
-raw_data$data_type <- "new_data"
+raw_data$data_type <- "new_collar"
 
 # check for duplicates
 raw_data[duplicated(raw_data[, c("acq_time_utc", "latitude_deg", "longitude_deg", "collar_id")]), ] # none
@@ -348,9 +348,9 @@ clean_tracks <- movement_map(flag_check)
 # save an image of the plot
 mapshot(clean_tracks, file = paste0("./figures/outlie_checks/clean_tracks_", collar_id, ".png"))
 
-#clean up environment
-rm(animal, flag_check, outlie_check, point_check, recheck, flagged, collar_id, outlier_rows, part1, part2)
-
+#clean up environment and clear plots 
+rm(animal, flag_check, outlie_check, point_check, recheck, flagged, collar_id, outlier_rows, part1, part2, raw_tracks)
+dev.off(dev.list()["RStudioGD"])
 
 
 
@@ -492,9 +492,9 @@ clean_tracks <- movement_map(flag_check)
 # save an image of the plot
 mapshot(clean_tracks, file = paste0("./figures/outlie_checks/clean_tracks_", collar_id, ".png"))
 
-#clean up environment
-rm(animal, flag_check, outlie_check, point_check, recheck, flagged, collar_id, outlier_rows, part1, part2)
-
+#clean up environment and clear plots 
+rm(animal, flag_check, outlie_check, point_check, recheck, flagged, collar_id, outlier_rows, part1, part2, raw_tracks)
+dev.off(dev.list()["RStudioGD"])
 
 
 
@@ -681,10 +681,9 @@ clean_tracks <- movement_map(flag_check)
 # save an image of the plot
 mapshot(clean_tracks, file = paste0("./figures/outlie_checks/clean_tracks_", collar_id, ".png"))
 
-#clean up environment
-rm(animal, flag_check, outlie_check, point_check, recheck, flagged, collar_id, outlier_rows, part1, part2)
-
-
+#clean up environment and clear plots 
+rm(animal, flag_check, outlie_check, point_check, recheck, flagged, collar_id, outlier_rows, part1, part2, raw_tracks)
+dev.off(dev.list()["RStudioGD"])
 
 
 
@@ -790,16 +789,15 @@ outlie_data$flag_outlier <- ifelse(rownames(outlie_data) %in% outlier_rows, 1, o
 # moving onto next individual, save plot
 png(file = paste0("figures/outlie_checks/clean_check_", collar_id, ".png"), width = 14, height = 6, units = "in", res = 600)
 recheck <- outlier_plots(flag_check) #outlier_plot(x), x is a single individual telemetry ctmm data 
-dev.off()
+
 #overlay tracking data on a map
 clean_tracks <- movement_map(flag_check)
 # save an image of the plot
 mapshot(clean_tracks, file = paste0("./figures/outlie_checks/clean_tracks_", collar_id, ".png"))
 
-#clean up environment
-rm(animal, flag_check, outlie_check, point_check, recheck, flagged, collar_id, outlier_rows, part1, part2)
-
-
+#clean up environment and clear plots 
+rm(animal, flag_check, outlie_check, point_check, recheck, flagged, collar_id, outlier_rows, part1, part2, raw_tracks)
+dev.off(dev.list()["RStudioGD"])
 
 
 
@@ -945,17 +943,22 @@ clean_tracks <- movement_map(flag_check)
 # save an image of the plot
 mapshot(clean_tracks, file = paste0("./figures/outlie_checks/clean_tracks_", collar_id, ".png"))
 
-#clean up environment
-rm(animal, flag_check, outlie_check, point_check, recheck, flagged, collar_id, outlier_rows, part1, part2)
+#clean up environment and clear plots 
+rm(animal, flag_check, outlie_check, point_check, recheck, flagged, collar_id, outlier_rows, part1, part2, raw_tracks)
+dev.off(dev.list()["RStudioGD"])
 
 
-#..................................................................
+#////////////////////////////////////////////////////////////////// 
+
 
 # sum up all the points that have been flagged
 sum(outlie_data$flag_outlier) #127 in total
 
 
+
 # save the dataframe with flagged outliers
 save(outlie_data, file = "./data/collar_data/outlie_data.rda")
+load("./data/collar_data/outlie_data.rda")
+
 
 
