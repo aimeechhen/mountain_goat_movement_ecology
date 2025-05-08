@@ -957,8 +957,8 @@ sum(outlie_data$flag_outlier) #127 in total
 
 
 # save the dataframe with flagged outliers
-save(outlie_data, file = "./data/collar_data/outlie_data.rda")
-load("./data/collar_data/outlie_data.rda")
+save(outlie_data, file = "./data/collar_data/outlie_data_20250505.rda")
+load("./data/collar_data/outlie_data_20250505.rda")
 
 
 
