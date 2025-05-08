@@ -3,25 +3,23 @@ library('purrr') # for functional programming
 library('tidyr') # for data wangling
 library('sf')    # for spatial features
 
+# load raw data
+
 # check layers
 st_layers('data/collar_data/raw_collar/GPS_Collar30548_20231005121804.gpx')
 #' use `track_points` layer
-#********** note that there is  kml file in the folder and a csv file*********
-st_layers('data/collar_data/raw_collar/GPS_Collar30548_20231005121804.gpx')
-shp_file <- list.files('data/collar_data/raw_collar', full.names = TRUE)[2]
-st_layers(shp_file)
-
+# list all the gpx files
+gpx_files <- list.files('data/collar_data/raw_collar', pattern = "\\.gpx$", full.names = TRUE)
 
 # import all gpx files
 d <- tibble(
-  file = list.files('data/collar_data/raw_collar'),
+  file = gpx_files,
   track = map(file, function(fn) {
-    st_read(paste0('data/collar_data/raw_collar/', fn),
-            layer = 'track_points', quiet = TRUE) %>%
+    st_read(fn, layer = 'track_points', quiet = TRUE) %>%
       # add animal identifier with ctmm syntax
-      mutate(individual.local.identifier = substr(fn, nchar('GPS_CollarX'),
+      mutate(individual.local.identifier = substr(basename(fn), nchar('GPS_CollarX'),
                                                   nchar('GPS_CollarXXXXX'))) %>%
-      bind_cols(., st_coordinates(.)) %>% # add coordinates
+      bind_cols(., st_coordinates(.)) %>%# add coordinates
       st_drop_geometry() %>% # drop sf geometry column
       rename(location.long = X, # rename using ctmm syntax
              location.lat = Y,
@@ -44,7 +42,7 @@ d <- d %>%
   select(individual.local.identifier, location.long, location.lat,
          timestamp, fix, hdop, pdop)
 
-saveRDS(d, 'data/stefano_oreamnos-americanus-tels.rds')
+# saveRDS(d, 'data/stefano_oreamnos-americanus-tels.rds')
 
 names(d)[1] <- "collar_id"
 # Import supplementary mountain goat info 
@@ -61,15 +59,13 @@ d$timestamp = as.POSIXct(d$timestamp, format = "%Y-%m-%d %H:%M:%S")
 d$goat_name <- as.factor(d$goat_name)
 # d$timestamp <- as.POSIXct(d$timestamp, format = "%Y-%m-%d %H:%M:%S", tz = "America/Vancouver")
 d$date <- as.Date(d$timestamp)
+d$date = as.Date(d$date, "%Y-%m-%d")
 d$year <- year(d$timestamp)
 d$month <- month(d$timestamp, label = FALSE) #label = false for numerical month
 d$day <- day(d$timestamp)
 d$month_day <- format(d$timestamp, "%m-%d")
 d$doy <- yday(d$timestamp) #day of the year
 
-
-
-d$date = as.Date(d$date, "%Y-%m-%d")
 d$goat_name <- as.factor(d$goat_name)
 d$collar_id <- as.factor(d$collar_id)
 # fire period for all years
@@ -77,7 +73,9 @@ fire_start <- '07-22' # doy = 203
 fire_end <- '10-26' # doy = 299
 d <- d[d$month_day >= fire_start & d$month_day <= fire_end, ] #15462
 
-load("data/collar_data/collar_data_20241123.rda")
+
+# import cleaned data
+load("data/collar_data/collar_data_20250505.rda")
 test <- collar_data[collar_data$month_day >= fire_start & collar_data$month_day <= fire_end, ] #14822
 
 # number of points removed
@@ -87,17 +85,8 @@ test <- collar_data[collar_data$month_day >= fire_start & collar_data$month_day 
 
 
 
-
-
-
-
-
-
-
-
-
-
-# new data
+#...................................................
+# new collar data ----
 
 telemetry.check <- read.csv(file = "data/collar_data/flagged_new_collar_data_20250218.csv")
 telemetry.check$timestamp <- as.POSIXct(telemetry.check$timestamp, format = "%Y-%m-%d %H:%M:%S", tz = "America/Vancouver")
