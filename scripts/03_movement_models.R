@@ -11,11 +11,11 @@ library(crayon)
 # Import data ----
 #...........................................................
 
-# Import combined collar data (original + new)
-goat_data <- read.csv("./data/combined_goat_data_fire_period_all_years.csv")
+# Import combined collar data (original + cleaned new)
+load("data/collar_data/fire_period_all_years_combined_data_20250505.rda")
 # formatting
-goat_data$timestamp = as.POSIXct(goat_data$timestamp, format = "%Y-%m-%d %H:%M:%S")
-goat_data$date = as.Date(goat_data$date, "%Y-%m-%d")
+goat_data$timestamp <- as.POSIXct(goat_data$timestamp, format = "%Y-%m-%d %H:%M:%S")
+goat_data$date <- as.Date(goat_data$date, "%Y-%m-%d")
 goat_data$goat_name <- as.factor(goat_data$goat_name)
 goat_data$collar_id <- as.factor(goat_data$collar_id)
 
@@ -35,10 +35,6 @@ summary(tel_data) # mostly ~6.25h with a few at 5.5h interval
 # visualisation of the data
 plot(tel_data)
 
-# checking goatzilla for 2023, movement model showed up as IID
-goat_data_2023 <- goat_data[goat_data$year == "2023", ] # 2898
-goatzilla_2023 <- goat_data_2023[goat_data_2023$goat_name == "goatzilla",]
-DATA <- as.telemetry(goatzilla_2023, mark.rm = TRUE)
 
 
 #...........................................................
@@ -57,11 +53,10 @@ for(i in 1:length(tel_data)){
   DATA <- tel_data[[i]]
   
   # create guesstimate non-interactively
-  GUESS <- ctmm.guess(DATA,CTMM=ctmm(error=FALSE),interactive=FALSE) # Error is off for now to speed up the process
+  GUESS <- ctmm.guess(DATA,CTMM=ctmm(error=TRUE),interactive=FALSE) # Error is off for now to speed up the process, error = true will help avoid iid models and push towards ou and ouf models
   # fit movement models and select best fit
-  # FITS[[i]] <- ctmm.select(DATA, GUESS, trace = 3, cores=-1)
-  fits_goatzilla <- ctmm.select(DATA, GUESS, trace = 3, cores=-1)
-  # beep(8)
+  FITS[[i]] <- ctmm.select(DATA, GUESS, trace = 3, cores=-1)
+
   
 }
 
@@ -74,21 +69,9 @@ kittyR::meowR(sound = 3)
 
 
 dir.create("data/movement_model/", recursive = TRUE, showWarnings = TRUE)
+save(FITS,file="data/movement_model/fits_20250505.rda")
+load("data/movement_model/fits_20250505.rda")
 
-# save(FITS,file="data/movement_model/goat_fits_20241107.rda")
-# load("data/movement_model/goat_fits_20241107.rda")
-# save(FITS,file="data/movement_model/fire_goat_fits_20241217.rda")
-# load("data/movement_model/fire_goat_fits_20241224.rda")
-# save(FITS,file="data/movement_model/full_fire_goat_fits_20250219.rda")
-# load("data/movement_model/full_fire_goat_fits_20250219.rda")
-save(FITS,file="data/movement_model/fits_20250301.rda")
-load("data/movement_model/fits_20250301.rda")
-
-
-
-# check movement model
-fitsum <- summary(fits_goatzilla)$name
-# goatzilla came up as IID again
 
 
 #...........................................................
@@ -109,7 +92,7 @@ for(i in 1:length(tel_data)){
   DATA <- tel_data[[i]]
   fits <- FITS[[i]]
   
-  # estimate mean speed (may be a mix of OU and OUF, so using robust = true)
+  # estimate mean speed (may be a mix of OU and OUF, so using robust = true), error = TRUE caused issues with no converging
   SPEED_MEAN[[i]] <- speed(object = DATA, CTMM = fits,
                            robust = TRUE, units = FALSE, trace = TRUE, cores = -1)
   # estimate instantaneous speed -> Error in as.POSIXlt.POSIXct(x, tz) : invalid 'tz' value
@@ -123,10 +106,10 @@ for(i in 1:length(tel_data)){
 names(SPEED_MEAN) <- names(tel_data)
 names(SPEEDS_INSTA) <- names(tel_data)
 
-toc() #13.87517 mins, ~26 min, combined data = 48 min
+toc() #13.9 mins, ~26 min, combined data = 48 min, combined without error
 END_speed <- Sys.time()
 # beep(8)
-kittyR::meowR(sound = 3)
+# kittyR::meowR(sound = 3)
 
 # 
 # Warning messages:
@@ -134,10 +117,10 @@ kittyR::meowR(sound = 3)
 #                      Movement model is fractal.
 
 
-save(SPEED_MEAN, file = "./data/movement_model/speed_mean_20250301.rda")
-save(SPEEDS_INSTA, file = "./data/movement_model/speeds_insta_20250301.rda")
-load(file = "./data/movement_model/speed_mean_20250301.rda")
-load(file = "./data/movement_model/speeds_insta_20250301.rda")
+save(SPEED_MEAN, file = "./data/movement_model/speed_mean_20250505.rda")
+save(SPEEDS_INSTA, file = "./data/movement_model/speeds_insta_20250505.rda")
+load(file = "./data/movement_model/speed_mean_20250505.rda")
+load(file = "./data/movement_model/speeds_insta_20250505.rda")
 
 
 
