@@ -25,21 +25,15 @@ goat_palette <- c("#4477AA", "#fa9fb5", "#41ab5d", "#fed976", "#41b6c4", "#88419
 #____________________________________________________________
 # Data ----
 
-# load("data/collar_data/collar_data_20241123.rda")
-# load("data/collar_data/new_collar_data_20250218.rda") #new collar data, cleaned for report
-
-# combined original and new collar data, cleaned for report
-goat_data <- read.csv("./data/combined_goat_data_fire_period_all_years.csv")
-
-
-
+# gps data, combined, cleaned, fire period only across all years
+load("data/collar_data/fire_period_all_years_combined_data_20250505.rda")
 
 # OUTPUTS 
-load("data/movement_model/fits_20250301.rda")
-load("data/home_range/akdes_20250301.rda")
-load("./data/movement_model/speed_mean_20250301.rda")
-load("./data/movement_model/speeds_insta_20250301.rda")
-load("./data/rsf/rsf_20250301.rda")
+load("data/movement_model/fits_20250505.rda")
+load("data/home_range/akdes_20250505.rda")
+load("./data/movement_model/speed_mean_20250505.rda")
+load("./data/movement_model/speeds_insta_20250505.rda")
+load("./data/rsf/rsf_20250505.rda")
 
 #results
 RESULTS <- read.csv("./data/combined_data_movement_hr_results_20250301.csv")
