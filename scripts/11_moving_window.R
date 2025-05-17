@@ -17,29 +17,22 @@ library(sf)
 # A. Import data ----
 #...............................................................
 
-# load("data/collar_data/collar_data_20240703.rda")
-# load("data/collar_data/collar_data_20241123.rda")
-
 # Import combined collar data (original + new)
-goat_data <- read.csv("./data/combined_goat_data_fire_period_all_years.csv")
+load("data/collar_data/fire_period_all_years_combined_data_20250505.rda")
 # formatting
-goat_data$timestamp = as.POSIXct(goat_data$timestamp, format = "%Y-%m-%d %H:%M:%S")
-goat_data$date = as.Date(goat_data$date, "%Y-%m-%d")
 goat_data$goat_name <- as.factor(goat_data$goat_name)
-goat_data$collar_id <- as.factor(goat_data$collar_id)
-
 
 
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~
-# subset to test window analysis
+# subset to test moving window
 goats <- c("30575", "30613")
 goat_data <- goat_data[goat_data$collar_id %in% goats,]
 
 
-fire_start <- '2023-06-01' # doy = 203
-fire_end <- '2023-12-31' # doy = 299
+fire_start <- '2023-08-01' # doy = 203
+fire_end <- '2023-08-15' # doy = 299
 goat_data <- goat_data[goat_data$date >= fire_start & goat_data$date <= fire_end, ]
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -135,7 +128,7 @@ for (id in collar_ids) {
 
 
 
-
+# ----
 
 #..................................................................
 # B. WINDOW PREP ----
@@ -164,7 +157,7 @@ r_list <- list(elev = elev,
 
 
 #create folders
-saving_date <- "20250313"
+saving_date <- "20250505"
 folder_list <- c(paste0("fits_", saving_date), 
                  paste0("akdes_", saving_date),
                  paste0("mean_speed_", saving_date),
@@ -172,19 +165,27 @@ folder_list <- c(paste0("fits_", saving_date),
                  paste0("covariates_", saving_date),
                  paste0("rsf_", saving_date))
 
+
+
 ## set directory path ----
 # dir_path <- "./data/window_analysis/fire_goats/fire_period/basic/" # for only during the fire period with the 6 fire goats
 # dir_path <- "./data/window_analysis/fire_goats/basic/" # for all of the data but only of the 6 fire goats
 # dir_path <- "./data/window_analysis/" # for all goats for all data
 # dir_path <- "./data/window_analysis/fire_goats/full_data/" # for full data for the 6 fire goats
-dir_path <- "./data/window_analysis/combined_data/buffer_dates/" # data range 2023-07-01 to 11-30
+# dir_path <- "./data/window_analysis/combined_data/buffer_dates/" # data range 2023-07-01 to 11-30
 # dir_path <- "./data/window_analysis/test/" # for full data, fire goats 
-
+dir_path <- "./data/moving_window/combined_data/"
+in_progress_path  <- "./data/moving_window/combined_data/in_progress/"
 
 
 # create every folder in the folder list in the directory 
 for (folder in folder_list) {
   dir.create(paste0(dir_path, folder), 
+             recursive = TRUE, showWarnings = TRUE)
+}
+
+for (folder in folder_list) {
+  dir.create(paste0(in_progress_path, folder), 
              recursive = TRUE, showWarnings = TRUE)
 }
 
@@ -204,7 +205,7 @@ for (folder in folder_list) {
 
 
 #//////////////////////////////////////////////////////////
-# C. WINDOW ANALYSIS ----
+# C. MOVING WINDOW ----
 #//////////////////////////////////////////////////////////
 
 
@@ -216,11 +217,12 @@ for (folder in folder_list) {
 # DATA <- tel_data[[1]]
 # i <- 1
 # tel_data <- tel_data[1:2]
+g <- 1
 
 dt <- 1 %#% 'day' #  %#% uses ctmm package to set the units, i.e. days
 win <- 3 %#% 'day'
 
-tic(msg = "window analysis")
+tic(msg = "moving window")
 START_window <- Sys.time()
 
 #.........................................
@@ -249,20 +251,28 @@ for(g in 1:length(tel_data)){
                                                              DATA$longitude[1],
                                                              method = "fast"))) # fast method is used because all the data are in the same timezone, adjust if they cross timezone boundaries
   
-  # Set up list to store, running certain analyses at a time, commenting out the rest
+  # Set up list to store outputs each window results for an individual
   fits <- list()
   akdes <- list()
-  # speed_mean <- list()
-  # speeds_insta <- list()
-  # covariates <- data.frame( # use = instead of <- when making df, <- causes it to run the operation in the column
-  #   collar_id = character(length(times)),
-  #   window_start = as.POSIXct(rep(NA, length(times)), tz = "America/Vancouver"),
-  #   window_end = as.POSIXct(rep(NA, length(times)), tz = "America/Vancouver"),
-  #   n_fixes = numeric(length(times)),
-  #   mean_elev = numeric(length(times)),
-  #   mean_dist_escape = numeric(length(times))
-  # )
-  # rsf <- list()
+  speed_mean <- list()
+  speeds_insta <- list()
+  rsf <- list()
+  # set up dataframe to store outputs, for an individual, window results will be filled in accordingly 
+  # NOTE: use '=' instead of '<-' when making df, '<-' causes it to run the operation in the column
+  covariates <- data.frame( 
+    collar_id = character(length(times)),
+    window_start = as.POSIXct(rep(NA, length(times)), tz = "America/Vancouver"),
+    window_end = as.POSIXct(rep(NA, length(times)), tz = "America/Vancouver"),
+    n_fixes = numeric(length(times)),
+    mean_elev = numeric(length(times)),
+    mean_dist_escape = numeric(length(times))
+  )
+  
+  fits_processing <- list()
+  akdes_processing <- list()
+  speed_mean_processing <- list()
+  speeds_insta_processing  <- list()
+  rsf_processing <- list()
   
   #.......................................................................
   # Analysis on the window segment ----
@@ -291,7 +301,7 @@ for(g in 1:length(tel_data)){
     # Process the subset if data is present
     tryCatch({
       cat(bgBlue("processing movement models","\n"))
-      GUESS <- ctmm.guess(SUBSET, interactive = FALSE)
+      GUESS <- ctmm.guess(SUBSET, CTMM=ctmm(error=FALSE), interactive=FALSE)
       FITS <- try(ctmm.select(SUBSET, GUESS, trace = 3, cores = -1))
       
       
@@ -299,79 +309,77 @@ for(g in 1:length(tel_data)){
         cat(bgBlue("processing home range","\n"))
         AKDES <- akde(SUBSET, FITS, weights = TRUE)
         
-        # cat(bold(bgYellow("processing speeds","\n")))
-        # tic(msg = "speed analysis")
-        # SPEED_MEAN <- speed(object = SUBSET, CTMM = FITS, robust = TRUE, units = FALSE, cores = -1)
-        # SPEEDS_INSTA <- speeds(object = SUBSET, CTMM = FITS, robust = TRUE, units = FALSE, cores = -1)
-        # toc()
+        cat(bold(bgYellow("processing speeds","\n")))
+        tic(msg = "speed analysis")
+        # estimate mean speed (may be a mix of OU and OUF, so using robust = true)
+        SPEED_MEAN <- speed(object = SUBSET, CTMM = FITS, robust = TRUE, units = FALSE, cores = -1)
+        SPEEDS_INSTA <- speeds(object = SUBSET, CTMM = FITS, robust = TRUE, units = FALSE, cores = -1)
+        toc()
         
-        # cat(bgGreen("processing rsf","\n"))
-        # tic(msg = "rsf analysis")
-        # RSF <- rsf.fit(SUBSET, AKDES, R=r_list)
-        # toc() #~15min each
+        cat(bgGreen("processing rsf","\n"))
+        tic(msg = "rsf analysis")
+        RSF <- rsf.fit(SUBSET, AKDES, R=r_list)
+        toc() #~15min each
         
         
         
         # store models/UDs in a list, name the entry based on goat name and subset window start date, not the times[i] as that is in unix format
         fits[[paste0(DATA@info[1], "_", as.character(WINDOW_START))]] <- FITS
         akdes[[paste0(DATA@info[1], "_", as.character(WINDOW_START))]] <- AKDES
-        # speed_mean[[paste0(DATA@info[1], "_", as.character(WINDOW_START))]] <- SPEED_MEAN
-        # speeds_insta[[paste0(DATA@info[1], "_", as.character(WINDOW_START))]] <- SPEEDS_INSTA
-        # rsf[[paste0(DATA@info[1], "_", as.character(WINDOW_START))]] <- RSF
+        speed_mean[[paste0(DATA@info[1], "_", as.character(WINDOW_START))]] <- SPEED_MEAN
+        speeds_insta[[paste0(DATA@info[1], "_", as.character(WINDOW_START))]] <- SPEEDS_INSTA
+        rsf[[paste0(DATA@info[1], "_", as.character(WINDOW_START))]] <- RSF
         
-        # # # habitat variables ----
-        # cat(bgBlue("processing covariates","\n"))
-        # SUBSET_SF <- as.sf(SUBSET)
-        # SUBSET_SF <- st_transform(SUBSET_SF, crs = st_crs("epsg:4326"))
-        # # #convert sf into spatvector object to be able to extract values, not needed if working with rasterlayer
-        # # locations <- vect(SUBSET_SF)
-        # # extract mean habitat values for each moving window segment (meters)
-        # covariates$collar_id[i] <- DATA@info$identity
-        # covariates$window_start[i] <- WINDOW_START
-        # covariates$window_end[i] <- WINDOW_END
-        # covariates$n_fixes[i] <- nrow(SUBSET)
-        # # covariates$mean_elev[i] <- mean(raster::extract(elev, locations)[,2])
-        # # covariates$mean_dist_escape[i] <- mean(raster::extract(dist_escape, locations)[,2])
-        # covariates$mean_elev[i] <- mean(raster::extract(elev, SUBSET_SF))         # changing locations to SUBSET_SF because of rasterlayer object and indexing isnt necessary
-        # covariates$mean_dist_escape[i] <- mean(raster::extract(dist_escape, SUBSET_SF))
-        # 
-
+        # # habitat variables ----
+        cat(bgBlue("processing covariates","\n"))
+        SUBSET_SF <- as.sf(SUBSET)
+        SUBSET_SF <- st_transform(SUBSET_SF, crs = st_crs("epsg:4326")) # project to lat/long crs
+        #extract and fill in window data
+        covariates$collar_id[i] <- DATA@info$identity
+        covariates$window_start[i] <- WINDOW_START
+        covariates$window_end[i] <- WINDOW_END
+        covariates$n_fixes[i] <- nrow(SUBSET)
+        # extract mean habitat values for each moving window segment (meters)
+        covariates$mean_elev[i] <- mean(raster::extract(elev, SUBSET_SF))         
+        covariates$mean_dist_escape[i] <- mean(raster::extract(dist_escape, SUBSET_SF))
+        
+        
         # END OF INNER LOOP
+       
         
+        fits_processing <- c(fits_processing, fits)
+        saveRDS(fits_processing, file = paste0(in_progress_path, paste0("fits_", saving_date, "/fits_"), DATA@info[1], ".rds"))
+        akdes_processing <- c(akdes_processing, akdes)
+        saveRDS(akdes_processing, file = paste0(in_progress_path, paste0("fits_", saving_date, "/fits_"), DATA@info[1], ".rds"))
+        rsf_processing <- c(rsf_processing, rsf)
+        saveRDS(rsf_processing, file = paste0(in_progress_path, paste0("fits_", saving_date, "/fits_"), DATA@info[1], ".rds"))
+        write.csv(covariates, file = paste0(in_progress_path, paste0("covariates_", saving_date, "/covariates_"), DATA@info[1], ".csv"), append = TRUE)
+         
         
       }
     }, error = function(e) {
       cat("Error during processing for window segment:", i, "-", e$message, "\n")
     })
     
-    # Combine the lists into a dataframe and set the column names to match
-    # covariates <- setNames(as.data.frame(do.call(cbind, list(collar_id, window_start, window_end, n_fixes, mean_elev, mean_dist_escape))),
-    #                        c("collar_id", "window_start", "window_end", "n_fixes", "mean_elev", "mean_dist_escape"))
+    toc()
+    
+    # save output during process
+    
     
     
   }
   
-  # save all the outputs as a rds for future analysis ----
-  # cat(bgWhite(magenta(paste("saving output for goat", DATA@info[1], 
-  #                           goat_data$goat_name[which(goat_data$collar_id == DATA@info[1])][1]))), "\n")
-  # saveRDS(fits, file = paste0(dir_path, "fits_test/fits_", DATA@info[1], ".rds"))
-  # saveRDS(akdes, file = paste0(dir_path, "akdes_test/akdes_", DATA@info[1], ".rds"))
-  # saveRDS(speed_mean, file = paste0(dir_path, "mean_speed_20250301/mean_speed_", DATA@info[1], ".rds"))
-  # saveRDS(speeds_insta, file = paste0(dir_path, "insta_speed_20250301/insta_speed_", DATA@info[1], ".rds"))
-  # saveRDS(covariates, file = paste0(dir_path, "covariates_20250301/covariates_", DATA@info[1], ".rds")) # remember this is a df and not a list
-  # saveRDS(rsf, file = paste0(dir_path, "rsf_20250301/rsf_", DATA@info[1], ".rds"))
-  
-  
-  # save all the outputs as a rds for future analysis ----
+  # save outputs ----
+  # save the lists containing each window output as a rds for future analysis
   cat(bold(bgWhite(magenta(paste("saving output for goat", DATA@info[1], 
                                  goat_data$goat_name[which(goat_data$collar_id == DATA@info[1])][1]))), "\n"))
-  # saveRDS(fits, file = paste0(dir_path, paste0("fits_", saving_date, "/fits_"), DATA@info[1], ".rds"))
-  # saveRDS(akdes, file = paste0(dir_path, paste0("akdes_", saving_date, "/akdes_"), DATA@info[1], ".rds"))
-  # saveRDS(speed_mean, file = paste0(dir_path, paste0("mean_speed_", saving_date, "/mean_speed_"), DATA@info[1], ".rds"))
-  # saveRDS(speeds_insta, file = paste0(dir_path, paste0("insta_speed_", saving_date, "/insta_speed_"), DATA@info[1], ".rds"))
-  # saveRDS(covariates, file = paste0(dir_path, paste0("covariates_", saving_date, "/covariates_"), DATA@info[1], ".rds")) # remember this is a df and not a list
+  saveRDS(fits, file = paste0(dir_path, paste0("fits_", saving_date, "/fits_"), DATA@info[1], ".rds"))
+  saveRDS(akdes, file = paste0(dir_path, paste0("akdes_", saving_date, "/akdes_"), DATA@info[1], ".rds"))
+  saveRDS(speed_mean, file = paste0(dir_path, paste0("mean_speed_", saving_date, "/mean_speed_"), DATA@info[1], ".rds"))
+  saveRDS(speeds_insta, file = paste0(dir_path, paste0("insta_speed_", saving_date, "/insta_speed_"), DATA@info[1], ".rds"))
   saveRDS(rsf, file = paste0(dir_path, paste0("rsf_", saving_date, "/rsf_"), DATA@info[1], ".rds"))
-  
+  # save df 
+  saveRDS(covariates, file = paste0(dir_path, paste0("covariates_", saving_date, "/covariates_"), DATA@info[1], ".rds")) # remember this is a df and not a list
   
   # clean up environment
   # rm(FITS,
@@ -380,7 +388,7 @@ for(g in 1:length(tel_data)){
   #    RSF)
   gc() # free up computational resources
   
-  # END OF OUTER LOOP, START AT TOP WITH A NEW GOAT
+  # END OF OUTER LOOP, START AT TOP WITH A NEW INDIVIDUAL
   toc()
   # beep(8)
 }
@@ -391,14 +399,14 @@ toc() # 5.2 min, 5 min, 5.6min
 # for all data = 15.5h (but was running 2 sessions and took jan 19-24)
 # speed for all data = ~17 days, 3 hours, 17 minutes
 # new  data, no speed, no rsf = 
-kittyR::meowR(sound = 3)
+# kittyR::meowR(sound = 3)
 
 END_window <- Sys.time()
 
 
 
 #////////////////////////////////////////////////
-# END WINDOW ANALYSIS
+# END 
 #////////////////////////////////////////////////
 
 
