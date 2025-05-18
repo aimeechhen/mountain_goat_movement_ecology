@@ -45,7 +45,7 @@ plot(tel_data)
 FITS <- list()
 
 START_movement <- Sys.time()
-tic(msg = "movement models analysis")
+tic(msg = "movement models")
 
 for(i in 1:length(tel_data)){
   message(bgWhite(cyan("Currently on animal ", i, " of ", length(tel_data))))
@@ -53,7 +53,7 @@ for(i in 1:length(tel_data)){
   DATA <- tel_data[[i]]
   
   # create guesstimate non-interactively
-  GUESS <- ctmm.guess(DATA,CTMM=ctmm(error=TRUE),interactive=FALSE) # Error is off for now to speed up the process, error = true will help avoid iid models and push towards ou and ouf models
+  GUESS <- ctmm.guess(DATA,CTMM=ctmm(error=FALSE),interactive=FALSE) # Error is off for now to speed up the process, error = true will help avoid iid models and push towards ou and ouf models
   # fit movement models and select best fit
   FITS[[i]] <- ctmm.select(DATA, GUESS, trace = 3, cores=-1)
 
@@ -63,14 +63,15 @@ for(i in 1:length(tel_data)){
 #rename for convenience
 names(FITS) <- names(tel_data)
 
-toc() #~1.46h, #9.698333 mins; full = ~12.5min
+toc() #~1.46h, #9.698333 mins; full = ~12.5min, 
+# combined: error on = 6.37h, error off = 12.8min
 END_movement <- Sys.time()
-kittyR::meowR(sound = 3)
+# kittyR::meowR(sound = 3)
 
 
 dir.create("data/movement_model/", recursive = TRUE, showWarnings = TRUE)
 save(FITS,file="data/movement_model/fits_20250505.rda")
-load("data/movement_model/fits_20250505.rda")
+# load("data/movement_model/fits_20250505.rda")
 
 
 
@@ -106,7 +107,7 @@ for(i in 1:length(tel_data)){
 names(SPEED_MEAN) <- names(tel_data)
 names(SPEEDS_INSTA) <- names(tel_data)
 
-toc() #13.9 mins, ~26 min, combined data = 48 min, combined without error
+toc() #13.9 mins, ~26 min, combined data = 48 min, combined without error = 59min
 END_speed <- Sys.time()
 # beep(8)
 # kittyR::meowR(sound = 3)
@@ -119,8 +120,8 @@ END_speed <- Sys.time()
 
 save(SPEED_MEAN, file = "./data/movement_model/speed_mean_20250505.rda")
 save(SPEEDS_INSTA, file = "./data/movement_model/speeds_insta_20250505.rda")
-load(file = "./data/movement_model/speed_mean_20250505.rda")
-load(file = "./data/movement_model/speeds_insta_20250505.rda")
+# load(file = "./data/movement_model/speed_mean_20250505.rda")
+# load(file = "./data/movement_model/speeds_insta_20250505.rda")
 
 
 

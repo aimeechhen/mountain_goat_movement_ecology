@@ -10,8 +10,8 @@ library(beepr)
 # Import data ----
 #...........................................................
 
-# Import combined collar data (original + new)
-goat_data <- read.csv("./data/combined_goat_data_fire_period_all_years.csv")
+# Import combined collar data (original + cleaned new)
+load("data/collar_data/fire_period_all_years_combined_data_20250505.rda")
 # formatting
 goat_data$timestamp = as.POSIXct(goat_data$timestamp, format = "%Y-%m-%d %H:%M:%S")
 goat_data$date = as.Date(goat_data$date, "%Y-%m-%d")
@@ -25,9 +25,11 @@ goat_data$individual.local.identifier <- paste(goat_data$collar_id, goat_data$ye
 goat_data <- plyr::rename(goat_data, c('latitude' = 'location.lat', 
                                        'longitude' = 'location.long'))
 
-# load movement models
-load("data/movement_model/fits_20250301.rda")
+# convert data to a ctmm telemetry object
+tel_data <- as.telemetry(goat_data, mark.rm = TRUE)
 
+# load movement models
+load("data/movement_model/fits_20250505.rda")
 
 #...........................................................
 
@@ -41,7 +43,7 @@ AKDES <- akde(tel_data,FITS,weights=TRUE)
 toc() # 14.2 mins
 END_hr <- Sys.time()
 beep(8)
-kittyR::meowR(sound = 2)
+# kittyR::meowR(sound = 2)
 
 # ~10.86min, 14.2 mins
 
@@ -50,8 +52,8 @@ kittyR::meowR(sound = 2)
 dir.create("data/home_range/", recursive = TRUE, showWarnings = TRUE)
 # save(AKDES,file="data/home_range/goat_akdes_20241217.rda")
 # load("data/home_range/goat_akdes_20241217.rda")
-save(AKDES,file="data/home_range/akdes_20250301.rda")
-load("data/home_range/akdes_20250301.rda")
+# save(AKDES,file="data/home_range/akdes_20250505.rda")
+load("data/home_range/akdes_20250505.rda")
 
 
 
