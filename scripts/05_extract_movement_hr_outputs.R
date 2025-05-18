@@ -6,10 +6,10 @@ library(tictoc)
 
 
 # data import ----
-load("data/movement_model/fits_20250301.rda")
-# load("./data/movement_model/speed_mean_20250301.rda")
-# load("./data/movement_model/speeds_insta_20250301.rda")
-load("data/home_range/akdes_20250301.rda")
+load("./data/movement_model/fits_20250505.rda")
+load("./data/movement_model/speed_mean_20250505.rda")
+load("./data/movement_model/speeds_insta_20250505.rda")
+load("./data/home_range/akdes_20250505.rda")
 
 
 
@@ -32,7 +32,7 @@ fitsum
 # speed (kilometers/day)  
 # diffusion (hectares/day)
 
-fitsum <- summary(FITS[[1]], units = FALSE) # using SI units
+fitsum <- summary(FITS[[1]], units = FALSE) # units = FALSE, using SI units
 fitsum <- summary(FITS[[1]], units = FALSE)$CI
 fitsum
 # CI units:
@@ -167,19 +167,19 @@ for (i in 1:length(AKDES)) {
     
     # using km^2 as default SI units, convert hectares into km^2 (1 hectare = 0.01 km^2 .-. divide by 100)
     if ("area (square kilometers)" %in% rownames(akdesum)) {
-      RESULTS[i, c("hr_min_km2", "hr_est_km2", "hr_max_km2")] <- akdesum[c("low", "est", "high")]
+      RESULTS[i, c("hr_low_km2", "hr_est_km2", "hr_high_km2")] <- akdesum[c("low", "est", "high")]
       
     } else if ("area (square meters)" %in% rownames(akdesum)) {
       # convert m^2 to km^2 .-. divide by 1e6
-      RESULTS[i, c("hr_min_km2", "hr_est_km2", "hr_max_km2")] <- akdesum[c("low", "est", "high")] / 1e6    
+      RESULTS[i, c("hr_low_km2", "hr_est_km2", "hr_high_km2")] <- akdesum[c("low", "est", "high")] / 1e6    
       
     } else if ("area (hectares)" %in% rownames(akdesum)) { 
       # convert hectares into km^2 (1 hectare = 0.01 km^2 .-. divide by 100)
-      RESULTS[i, c("hr_min_km2", "hr_est_km2", "hr_max_km2")]<- akdesum[c("low", "est", "high")] / 100
+      RESULTS[i, c("hr_low_km2", "hr_est_km2", "hr_high_km2")]<- akdesum[c("low", "est", "high")] / 100
       
     } else { 
       cat("no home range entry found for", "\n")
-      RESULTS[i, c("hr_min_km2", "hr_est_km2", "hr_max_km2")] <- NA
+      RESULTS[i, c("hr_low_km2", "hr_est_km2", "hr_high_km2")] <- NA
     }
     
   }, error = function(e) {
@@ -240,15 +240,15 @@ for (i in 1:length(FITS)) {
   # si units has it m^2/sec, convert to km^2/day 0.0864 or 8.64e-2
   if ("diffusion (square meters/second)" %in% rownames(summary(FITS[[i]], units = FALSE)$CI))  {
     # Update the corresponding row in the data frame
-    RESULTS[i, c("diffusion_min_km2_day",
+    RESULTS[i, c("diffusion_low_km2_day",
                  "diffusion_est_km2_day",
-                 "diffusion_max_km2_day")] <- summary(FITS[[i]], units = FALSE)$CI["diffusion (square meters/second)",
+                 "diffusion_high_km2_day")] <- summary(FITS[[i]], units = FALSE)$CI["diffusion (square meters/second)",
                                                                                    c("low", "est", "high")] * 0.0864
     
     
   } else {
     cat("no diffusion entry found", "\n")
-    RESULTS[i, c("diffusion_min_km2_day", "diffusion_est_km2_day", "diffusion_max_km2_day")] <- NA
+    RESULTS[i, c("diffusion_low_km2_day", "diffusion_est_km2_day", "diffusion_high_km2_day")] <- NA
   }
   
   
@@ -261,23 +261,23 @@ for (i in 1:length(FITS)) {
   if ("τ[position] (seconds)" %in% rownames(summary(FITS[[i]], units = FALSE)$CI)) {
     
     # Update the corresponding row in the data frame (used for bls calculations)
-    RESULTS[i, c("tau_p_min_s",
+    RESULTS[i, c("tau_p_low_s",
                  "tau_p_est_s",
-                 "tau_p_max_s")] <- summary(FITS[[i]], units = FALSE)$CI["τ[position] (seconds)",
+                 "tau_p_high_s")] <- summary(FITS[[i]], units = FALSE)$CI["τ[position] (seconds)",
                                                                          c("low", "est", "high")]
     
     #convert to seconds to days
-    RESULTS[i, c("tau_p_min_day",
+    RESULTS[i, c("tau_p_low_day",
                  "tau_p_est_day",
-                 "tau_p_max_day")] <- summary(FITS[[i]], units = FALSE)$CI["τ[position] (seconds)",
+                 "tau_p_high_day")] <- summary(FITS[[i]], units = FALSE)$CI["τ[position] (seconds)",
                                                                            c("low", "est", "high")] / 86400
     
     
     
   } else {
     cat("no tau p entry", "\n")
-    RESULTS[i, c("tau_p_min_s", "tau_p_est_s", "tau_p_max_s")] <- NA
-    RESULTS[i, c("tau_p_min_day", "tau_p_est_day", "tau_p_max_day")] <- NA
+    RESULTS[i, c("tau_p_low_s", "tau_p_est_s", "tau_p_high_s")] <- NA
+    RESULTS[i, c("tau_p_low_day", "tau_p_est_day", "tau_p_high_day")] <- NA
   }
   
   
@@ -289,20 +289,20 @@ for (i in 1:length(FITS)) {
   if ("τ[velocity] (seconds)" %in% rownames(summary(FITS[[i]], units = FALSE)$CI)) {
     
     # Update the corresponding row in the data frame (used for bls calculations)
-    RESULTS[i, c("tau_v_min_s",
+    RESULTS[i, c("tau_v_low_s",
                  "tau_v_est_s",
-                 "tau_v_max_s")] <- summary(FITS[[i]], units = FALSE)$CI["τ[velocity] (seconds)",
+                 "tau_v_high_s")] <- summary(FITS[[i]], units = FALSE)$CI["τ[velocity] (seconds)",
                                                                          c("low", "est", "high")]
     #convert to seconds to minutes
-    RESULTS[i, c("tau_v_min_min", 
+    RESULTS[i, c("tau_v_low_min", 
                  "tau_v_est_min", 
-                 "tau_v_max_min")] <- summary(FITS[[i]], units = FALSE)$CI["τ[velocity] (seconds)", 
+                 "tau_v_high_min")] <- summary(FITS[[i]], units = FALSE)$CI["τ[velocity] (seconds)", 
                                                                            c("low", "est", "high")] / 60
     
   } else { 
     cat("no tau v entry", "\n")
-    RESULTS[i, c("tau_v_min_s", "tau_v_est_s", "tau_v_max_s")] <- NA
-    RESULTS[i, c("tau_v_min_min", "tau_v_est_min", "tau_v_max_min")] <- NA
+    RESULTS[i, c("tau_v_low_s", "tau_v_est_s", "tau_v_high_s")] <- NA
+    RESULTS[i, c("tau_v_low_min", "tau_v_est_min", "tau_v_high_min")] <- NA
   }
   
   
@@ -315,14 +315,14 @@ for (i in 1:length(FITS)) {
   if (!is.na(RESULTS$tau_p_est_s[i]) && !is.na(RESULTS$tau_v_est_s[i])) {
     sigma_p <- ctmm:::area.covm(FITS[[i]]$sigma)
     
-    bls_min <- sqrt((RESULTS$tau_v_min_s[i] / RESULTS$tau_p_min_s[i]) * sigma_p)
+    bls_low <- sqrt((RESULTS$tau_v_low_s[i] / RESULTS$tau_p_low_s[i]) * sigma_p)
     bls_est <- sqrt((RESULTS$tau_v_est_s[i] / RESULTS$tau_p_est_s[i]) * sigma_p)
-    bls_max <- sqrt((RESULTS$tau_v_max_s[i] / RESULTS$tau_p_max_s[i]) * sigma_p)
+    bls_high <- sqrt((RESULTS$tau_v_high_s[i] / RESULTS$tau_p_high_s[i]) * sigma_p)
     
-    RESULTS[i, c("bls_min", "bls_est", "bls_max")] <- c(bls_min, bls_est, bls_max)
+    RESULTS[i, c("bls_low", "bls_est", "bls_high")] <- c(bls_low, bls_est, bls_high)
   } else {
     cat("no bls entry found", "\n")
-    RESULTS[i, c("bls_min", "bls_est", "bls_max")] <- NA
+    RESULTS[i, c("bls_low", "bls_est", "bls_high")] <- NA
   }
   
   
@@ -349,8 +349,11 @@ goat_info <- goat_info[goat_info$goat_name %in% goats,]
 RESULTS <- merge(RESULTS, goat_info[, c("collar_id","goat_name", "goat_id")], by = "collar_id", all.x = TRUE)
 RESULTS <- dplyr::relocate(RESULTS, c("collar_id","goat_name", "goat_id"), .before = year)
 
-write.csv(RESULTS, file = "./data/combined_data_movement_hr_results_20250301.csv", row.names = FALSE)
-RESULTS <- read.csv("./data/combined_data_movement_hr_results_20250301.csv")
+
+
+# SAVE RESULTS ----
+write.csv(RESULTS, file = "./data/combined_data_movement_hr_results_20250505.csv", row.names = FALSE)
+RESULTS <- read.csv("./data/combined_data_movement_hr_results_20250505.csv")
 
 
 
@@ -399,9 +402,9 @@ DOF_results
 #Get diffusion estimates
 
 diffusion_results <- data.frame(
-  diffusion_min_m2_s = numeric(length(FITS)),
+  diffusion_low_m2_s = numeric(length(FITS)),
   diffusion_est_m2_s = numeric(length(FITS)),
-  diffusion_max_m2_s = numeric(length(FITS))
+  diffusion_high_m2_s = numeric(length(FITS))
 )
 
 # #Get diffusion values (units = square meters/second)
@@ -410,16 +413,16 @@ for (i in seq_along(FITS)) {
   # Check if "diffusion (square meters/second)" is present in the row names
   if ("diffusion (square meters/second)" %in% row.names(summary(FITS[[i]], units = FALSE)$CI)) {
     # Update the corresponding row in the data frame
-    diffusion_results[i, "diffusion_min_m2_s"] <- summary(FITS[[i]], units = FALSE)$CI["diffusion (square meters/second)", 1]
+    diffusion_results[i, "diffusion_low_m2_s"] <- summary(FITS[[i]], units = FALSE)$CI["diffusion (square meters/second)", 1]
     diffusion_results[i, "diffusion_est_m2_s"] <- summary(FITS[[i]], units = FALSE)$CI["diffusion (square meters/second)", 2]
-    diffusion_results[i, "diffusion_max_m2_s"] <- summary(FITS[[i]], units = FALSE)$CI["diffusion (square meters/second)", 3]
+    diffusion_results[i, "diffusion_high_m2_s"] <- summary(FITS[[i]], units = FALSE)$CI["diffusion (square meters/second)", 3]
   }
 }
 
 # # Convert m^2/second into km^2/day
-diffusion_results$diffusion_min_km2_day <- diffusion_results$diffusion_min_m2_s * 0.0864
+diffusion_results$diffusion_low_km2_day <- diffusion_results$diffusion_low_m2_s * 0.0864
 diffusion_results$diffusion_est_km2_day <- diffusion_results$diffusion_est_m2_s * 0.0864
-diffusion_results$diffusion_max_km2_day <- diffusion_results$diffusion_max_m2_s * 0.0864
+diffusion_results$diffusion_high_km2_day <- diffusion_results$diffusion_high_m2_s * 0.0864
 
 diffusion_results
 
@@ -448,9 +451,9 @@ tau_p_results
 # looks much better
 
 # if theyre all the same then rename the columns and drop the rowname
-names(tau_p_results)[1] <- "tau_p_min_days"
+names(tau_p_results)[1] <- "tau_p_low_days"
 names(tau_p_results)[2] <- "tau_p_est_days"
-names(tau_p_results)[3] <- "tau_p_max_days"
+names(tau_p_results)[3] <- "tau_p_high_days"
 rownames(tau_p_results) <- NULL
 
 tau_p_results
@@ -490,9 +493,9 @@ tau_v_results
 # looks much better
 
 # if theyre all the same units now then rename the columns and drop the rowname
-names(tau_v_results)[1] <- "tau_v_min_minutes"
+names(tau_v_results)[1] <- "tau_v_low_minutes"
 names(tau_v_results)[2] <- "tau_v_est_minutes"
-names(tau_v_results)[3] <- "tau_v_max_minutes"
+names(tau_v_results)[3] <- "tau_v_high_minutes"
 rownames(tau_v_results) <- NULL
 
 tau_v_results
@@ -522,9 +525,9 @@ ci_results #(units = meters/second)
 
 # if theyre all the same then rename the columns and drop the rowname
 names(dof_results)[1] <- "speed_mean_DOF"
-names(ci_results)[1] <- "speed_mean_min_ms"
+names(ci_results)[1] <- "speed_mean_low_ms"
 names(ci_results)[2] <- "speed_mean_est_ms"
-names(ci_results)[3] <- "speed_mean_max_ms"
+names(ci_results)[3] <- "speed_mean_high_ms"
 rownames(dof_results) <- NULL
 rownames(ci_results) <- NULL
 
@@ -541,9 +544,9 @@ speed_mean_results
 # OU model causes 'Inf' because not enough data to estimate**** check
 
 speed_insta_results <- data.frame(
-  speed_insta_min = numeric(length(FITS)),
+  speed_insta_low = numeric(length(FITS)),
   speed_insta_est = numeric(length(FITS)),
-  speed_insta_max = numeric(length(FITS))
+  speed_insta_high = numeric(length(FITS))
 )
 
 
@@ -606,9 +609,9 @@ for (i in 1:length(AKDES)) {
 # inspect if all the units are the same (units = km²), units = FALSE, default units are m^2, but in the for loop with units = FALSE, it changed it to km² instead of keeping it in m²
 hr_size
 # if theyre all the same then rename the columns and drop the rowname
-names(hr_size)[1] <- "mean_hr_min_km2"
+names(hr_size)[1] <- "mean_hr_low_km2"
 names(hr_size)[2] <- "mean_hr_est_km2"
-names(hr_size)[3] <- "mean_hr_max_km2"
+names(hr_size)[3] <- "mean_hr_high_km2"
 rownames(hr_size) <- NULL
 
 
