@@ -3,6 +3,12 @@
 # movement and hr analysis
 
 
+
+# data import ----
+load("./data/movement_model/fits_20250505.rda")
+load("./data/home_range/akdes_20250505.rda")
+
+
 #...........................................................
 # #check for significance, home range ----
 #...........................................................
@@ -25,6 +31,28 @@ meta(hr_year_compare, col = COL_year, sort = TRUE)
 
 
 
+# save the analysis results
+sink(paste0("data/", "hr_analysis.txt"))
+cat("\n") #enter blank line
+print("calculate mean home range sizes for no fire years")
+print(meta(no_fire_year))
+cat("\n") #enter blank line
+print("calculate mean home range sizes for fire period")
+print(meta(fire_year))
+cat("\n") #enter blank line
+print("test to see significance of year on home range using the meta() function, compare fire vs no fire")
+hr_year_compare <- list(no_fire = no_fire_year,
+                        fire = fire_year)
+COL_year <- c("grey", "#A50026")
+print(meta(hr_year_compare, col = COL_year, sort = TRUE))
+sink() #terminate output exporting connection/process
+
+
+
+
+
+
+
 #...........................................................
 # #check for significance, diffusion
 #...........................................................
@@ -32,9 +60,9 @@ meta(hr_year_compare, col = COL_year, sort = TRUE)
 no_fire_year2 <- FITS[!grepl("2023", names(FITS))]
 fire_year2 <- FITS[grepl("2023", names(FITS))]
 
-#calculate mean home range sizes for no fire years
+#calculate mean diffusion for no fire years
 meta(no_fire_year2, variable = "diffusion")
-#calculate mean home range sizes for fire period
+#calculate mean diffusion for fire period
 meta(fire_year2, variable = "diffusion")
 
 #test to see significance of year on diffusion using the meta() function
@@ -45,7 +73,21 @@ meta(diff_year_compare, col = COL_year, sort = TRUE, "diffusion")
 
 
 
-
+# save the analysis results
+sink(paste0("data/", "diffusion_analysis.txt"))
+cat("\n") #enter blank line
+print("calculate mean diffusion for no fire years")
+print(meta(no_fire_year2))
+cat("\n") #enter blank line
+print("calculate mean diffusion for fire period")
+print(meta(fire_year2))
+cat("\n") #enter blank line
+print("test to see significance of year on diffusion using the meta() function, compare fire vs no fire")
+diff_year_compare <- list(no_fire = no_fire_year2,
+                        fire = fire_year2)
+COL_year <- c("grey", "#A50026")
+print(meta(diff_year_compare, col = COL_year, sort = TRUE))
+sink() #terminate output exporting connection/process
 
 
 
@@ -63,7 +105,7 @@ library(dplyr)
 
 
 # import extract results
-results_df <- read.csv(file = "./data/full_data_results_20250225.csv", row.names = FALSE)
+results_df <-read.csv("./data/combined_data_movement_hr_results_20250505.csv")
 
 
 # load data ----
