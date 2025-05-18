@@ -12,10 +12,10 @@ library(crayon)
 # load("data/home_range/goat_akdes_20241217.rda")
 
 # Import data as ctmm telemetry object ----
-source('./scripts/source/import_data_as_ctmm_telemetry_object.R')
+# source('./scripts/source/import_data_as_ctmm_telemetry_object.R')
 
 # import AKDES
-load("data/home_range/akdes_20250301.rda")
+load("data/home_range/akdes_20250505.rda")
 
 # import spatial covariate rasters 
 elev = raster('data/rasters/elev_25m.tif')
@@ -59,19 +59,14 @@ for(i in 1:length(tel_data)){
 }
 names(RSF) <- names(tel_data)
 
-toc() # ~12.55 hrs
-beep(3)
+toc() # ~12.55 hrs, combined = 8.8h
+# beep(3)
 # kittyR::meowR(sound = 3)
 END_rsf <- Sys.time()
 
 dir.create("./data/rsf/", recursive = TRUE, showWarnings = TRUE)
-# save(rsf, file = "./data/rsf/fire_goat_rsf_20241220.rda")
-# load("./data/rsf/fire_goat_rsf_20241220.rda")
-# save(rsf, file = "./data/rsf/rsf_20241226.rda")
-# load("./data/rsf/rsf_20241226.rda")
-# load("./data/rsf/full_fire_goat_rsf_20250220.rda")
-save(RSF, file = "./data/rsf/rsf_20250301.rda")
-load("./data/rsf/rsf_20250301.rda")
 
 
+save(RSF, file = "./data/rsf/rsf_20250505.rda")
+load("./data/rsf/rsf_20250505.rda")
 
