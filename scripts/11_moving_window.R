@@ -24,18 +24,18 @@ goat_data$goat_name <- as.factor(goat_data$goat_name)
 
 
 
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~~
-# subset to test moving window
-goats <- c("30575", "30613")
-goat_data <- goat_data[goat_data$collar_id %in% goats,]
-
-
-fire_start <- '2023-08-01' # doy = 203
-fire_end <- '2023-08-15' # doy = 299
-goat_data <- goat_data[goat_data$date >= fire_start & goat_data$date <= fire_end, ]
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~~
+# 
+# #~~~~~~~~~~~~~~~~~~~~~~~~~~
+# # subset to test moving window
+# goats <- c("30575", "30613")
+# goat_data <- goat_data[goat_data$collar_id %in% goats,]
+# 
+# 
+# fire_start <- '2023-08-01' # doy = 203
+# fire_end <- '2023-08-15' # doy = 299
+# goat_data <- goat_data[goat_data$date >= fire_start & goat_data$date <= fire_end, ]
+# 
+# #~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 #format names to match required for ctmm based on Movebank critera:
@@ -49,76 +49,76 @@ tel_data <- as.telemetry(dat, mark.rm = TRUE)
 
 
 
-#...............................................................
-# WINDOW DATA CHECK & PREP  ----
-#...............................................................
-
-# How to check if there are missing dates in your dataframe by counting the number of recordings and the number of days and comparing them, and troubleshoot the missing dates error
-
-
-# Convert 'timestamp' to Date format
-goat_data$date <- as.Date(goat_data$timestamp)
-
-# Get a list of unique dates for each collar ID
-date_counts <- aggregate(date ~ collar_id, goat_data, FUN = function(x) length(unique(x)))
-
-# Get the total number of unique dates in the dataset for each collar ID
-total_dates <- aggregate(date ~ collar_id, goat_data, FUN = function(x) length(unique(x)))
-
-# Merge the two data frames to compare if there is at least one timestamp for every day for each collar ID
-result <- merge(date_counts, total_dates, by = "collar_id", suffixes = c("_count", "_total"))
-
-# Check completeness
-result$complete <- result$date_count == result$date_total
-
-# Print results
-print(result)
-
-
-
-#...................................................
-# the number of dates counted are not the same for all the collars
-
-##How to check dates which are missing/duplicated and for each collar ----
-
-# Get unique collar IDs
-collar_ids <- unique(goat_data$collar_id)
-
-# Loop through each collar ID and check for missing or duplicated dates
-for (id in collar_ids) {
-  # Subset data for the current collar ID
-  subset_data <- goat_data[goat_data$collar_id == id, ]
-  
-  # Get unique dates for the current collar ID
-  unique_dates <- unique(subset_data$date)
-  
-  # Check for missing dates
-  missing_dates <- setdiff(seq(min(unique_dates), max(unique_dates), by = "day"), unique_dates)
-  
-  # Convert missing dates back to Date format
-  missing_dates <- as.Date(missing_dates, origin = "1970-01-01")
-  
-  # Check for duplicated dates
-  duplicated_dates <- unique_dates[duplicated(unique_dates)]
-  
-  # Convert duplicated dates back to Date format
-  duplicated_dates <- as.Date(duplicated_dates, origin = "1970-01-01")
-  
-  # Print results
-  cat("Collar ID:", id, "\n")
-  cat("Missing Dates:", ifelse(length(missing_dates) > 0, paste(missing_dates, collapse = ", "), "None"), "\n")
-  cat("Duplicated Dates:", ifelse(length(duplicated_dates) > 0, paste(duplicated_dates, collapse = ", "), "None"), "\n\n")
-}
-
-# Collar ID: 30613 
-# Missing Dates: 2023-03-12 
+# #...............................................................
+# # WINDOW DATA CHECK & PREP  ----
+# #...............................................................
 # 
-# Collar ID: 30642 
-# Missing Dates: 2023-09-23, 2023-09-24, 2023-09-25, 2023-09-26, 2023-09-27 
-
-# combined data
-# Duplicated Dates: None
-
+# # How to check if there are missing dates in your dataframe by counting the number of recordings and the number of days and comparing them, and troubleshoot the missing dates error
+# 
+# 
+# # Convert 'timestamp' to Date format
+# goat_data$date <- as.Date(goat_data$timestamp)
+# 
+# # Get a list of unique dates for each collar ID
+# date_counts <- aggregate(date ~ collar_id, goat_data, FUN = function(x) length(unique(x)))
+# 
+# # Get the total number of unique dates in the dataset for each collar ID
+# total_dates <- aggregate(date ~ collar_id, goat_data, FUN = function(x) length(unique(x)))
+# 
+# # Merge the two data frames to compare if there is at least one timestamp for every day for each collar ID
+# result <- merge(date_counts, total_dates, by = "collar_id", suffixes = c("_count", "_total"))
+# 
+# # Check completeness
+# result$complete <- result$date_count == result$date_total
+# 
+# # Print results
+# print(result)
+# 
+# 
+# 
+# #...................................................
+# # the number of dates counted are not the same for all the collars
+# 
+# ##How to check dates which are missing/duplicated and for each collar ----
+# 
+# # Get unique collar IDs
+# collar_ids <- unique(goat_data$collar_id)
+# 
+# # Loop through each collar ID and check for missing or duplicated dates
+# for (id in collar_ids) {
+#   # Subset data for the current collar ID
+#   subset_data <- goat_data[goat_data$collar_id == id, ]
+#   
+#   # Get unique dates for the current collar ID
+#   unique_dates <- unique(subset_data$date)
+#   
+#   # Check for missing dates
+#   missing_dates <- setdiff(seq(min(unique_dates), max(unique_dates), by = "day"), unique_dates)
+#   
+#   # Convert missing dates back to Date format
+#   missing_dates <- as.Date(missing_dates, origin = "1970-01-01")
+#   
+#   # Check for duplicated dates
+#   duplicated_dates <- unique_dates[duplicated(unique_dates)]
+#   
+#   # Convert duplicated dates back to Date format
+#   duplicated_dates <- as.Date(duplicated_dates, origin = "1970-01-01")
+#   
+#   # Print results
+#   cat("Collar ID:", id, "\n")
+#   cat("Missing Dates:", ifelse(length(missing_dates) > 0, paste(missing_dates, collapse = ", "), "None"), "\n")
+#   cat("Duplicated Dates:", ifelse(length(duplicated_dates) > 0, paste(duplicated_dates, collapse = ", "), "None"), "\n\n")
+# }
+# 
+# # Collar ID: 30613 
+# # Missing Dates: 2023-03-12 
+# # 
+# # Collar ID: 30642 
+# # Missing Dates: 2023-09-23, 2023-09-24, 2023-09-25, 2023-09-26, 2023-09-27 
+# 
+# # combined data
+# # Duplicated Dates: None
+# 
 
 
 
@@ -157,7 +157,7 @@ r_list <- list(elev = elev,
 
 
 #create folders
-saving_date <- "20250505"
+saving_date <- "20250603"
 folder_list <- c(paste0("fits_", saving_date), 
                  paste0("akdes_", saving_date),
                  paste0("mean_speed_", saving_date),
@@ -165,17 +165,9 @@ folder_list <- c(paste0("fits_", saving_date),
                  paste0("covariates_", saving_date),
                  paste0("rsf_", saving_date))
 
-
-
 ## set directory path ----
-# dir_path <- "./data/window_analysis/fire_goats/fire_period/basic/" # for only during the fire period with the 6 fire goats
-# dir_path <- "./data/window_analysis/fire_goats/basic/" # for all of the data but only of the 6 fire goats
-# dir_path <- "./data/window_analysis/" # for all goats for all data
-# dir_path <- "./data/window_analysis/fire_goats/full_data/" # for full data for the 6 fire goats
-# dir_path <- "./data/window_analysis/combined_data/buffer_dates/" # data range 2023-07-01 to 11-30
-# dir_path <- "./data/window_analysis/test/" # for full data, fire goats 
 dir_path <- "./data/moving_window/combined_data/"
-in_progress_path  <- "./data/moving_window/combined_data/in_progress/"
+
 
 
 # create every folder in the folder list in the directory 
@@ -184,10 +176,7 @@ for (folder in folder_list) {
              recursive = TRUE, showWarnings = TRUE)
 }
 
-for (folder in folder_list) {
-  dir.create(paste0(in_progress_path, folder), 
-             recursive = TRUE, showWarnings = TRUE)
-}
+
 
 
 #..............................................................
@@ -207,17 +196,6 @@ for (folder in folder_list) {
 #//////////////////////////////////////////////////////////
 # C. MOVING WINDOW ----
 #//////////////////////////////////////////////////////////
-
-
-# test dates
-# fire_start <- '2023-07-01' # doy = 203
-# fire_end <- '2023-07-31' # doy = 299
-# test_dat <- goat_data[goat_data$date >= fire_start & goat_data$date <= fire_end, ]
-# tel_data <- as.telemetry(test_dat)
-# DATA <- tel_data[[1]]
-# i <- 1
-# tel_data <- tel_data[1:2]
-g <- 1
 
 dt <- 1 %#% 'day' #  %#% uses ctmm package to set the units, i.e. days
 win <- 3 %#% 'day'
@@ -268,11 +246,7 @@ for(g in 1:length(tel_data)){
     mean_dist_escape = numeric(length(times))
   )
   
-  fits_processing <- list()
-  akdes_processing <- list()
-  speed_mean_processing <- list()
-  speeds_insta_processing  <- list()
-  rsf_processing <- list()
+
   
   #.......................................................................
   # Analysis on the window segment ----
@@ -302,7 +276,7 @@ for(g in 1:length(tel_data)){
     tryCatch({
       cat(bgBlue("processing movement models","\n"))
       GUESS <- ctmm.guess(SUBSET, CTMM=ctmm(error=FALSE), interactive=FALSE)
-      FITS <- try(ctmm.select(SUBSET, GUESS, trace = 3, cores = -1))
+      FITS <- try(ctmm.select(SUBSET, GUESS, trace = 3, cores = -5))
       
       
       if (inherits(FITS, "ctmm")) {
@@ -312,15 +286,14 @@ for(g in 1:length(tel_data)){
         cat(bold(bgYellow("processing speeds","\n")))
         tic(msg = "speed analysis")
         # estimate mean speed (may be a mix of OU and OUF, so using robust = true)
-        SPEED_MEAN <- speed(object = SUBSET, CTMM = FITS, robust = TRUE, units = FALSE, cores = -1)
-        SPEEDS_INSTA <- speeds(object = SUBSET, CTMM = FITS, robust = TRUE, units = FALSE, cores = -1)
+        SPEED_MEAN <- speed(object = SUBSET, CTMM = FITS, robust = TRUE, units = FALSE, cores = -5)
+        SPEEDS_INSTA <- speeds(object = SUBSET, CTMM = FITS, robust = TRUE, units = FALSE, cores = -5)
         toc()
         
         cat(bgGreen("processing rsf","\n"))
         tic(msg = "rsf analysis")
         RSF <- rsf.fit(SUBSET, AKDES, R=r_list)
         toc() #~15min each
-        
         
         
         # store models/UDs in a list, name the entry based on goat name and subset window start date, not the times[i] as that is in unix format
@@ -344,28 +317,12 @@ for(g in 1:length(tel_data)){
         covariates$mean_dist_escape[i] <- mean(raster::extract(dist_escape, SUBSET_SF))
         
         
-        # END OF INNER LOOP
-       
-        
-        fits_processing <- c(fits_processing, fits)
-        saveRDS(fits_processing, file = paste0(in_progress_path, paste0("fits_", saving_date, "/fits_"), DATA@info[1], ".rds"))
-        akdes_processing <- c(akdes_processing, akdes)
-        saveRDS(akdes_processing, file = paste0(in_progress_path, paste0("fits_", saving_date, "/fits_"), DATA@info[1], ".rds"))
-        rsf_processing <- c(rsf_processing, rsf)
-        saveRDS(rsf_processing, file = paste0(in_progress_path, paste0("fits_", saving_date, "/fits_"), DATA@info[1], ".rds"))
-        write.csv(covariates, file = paste0(in_progress_path, paste0("covariates_", saving_date, "/covariates_"), DATA@info[1], ".csv"), append = TRUE)
-         
-        
       }
     }, error = function(e) {
       cat("Error during processing for window segment:", i, "-", e$message, "\n")
     })
     
     toc()
-    
-    # save output during process
-    
-    
     
   }
   
@@ -382,24 +339,18 @@ for(g in 1:length(tel_data)){
   saveRDS(covariates, file = paste0(dir_path, paste0("covariates_", saving_date, "/covariates_"), DATA@info[1], ".rds")) # remember this is a df and not a list
   
   # clean up environment
-  # rm(FITS,
-  #    AKDES,
-  #    # SPEED_MEAN, SPEEDS_INSTA,
-  #    RSF)
+  rm(FITS,
+     AKDES,
+     SPEED_MEAN, SPEEDS_INSTA,
+     RSF)
   gc() # free up computational resources
   
   # END OF OUTER LOOP, START AT TOP WITH A NEW INDIVIDUAL
   toc()
-  # beep(8)
 }
 
 
-toc() # 5.2 min, 5 min, 5.6min
-# 15min, 33min for all fire goats for cc fire period only
-# for all data = 15.5h (but was running 2 sessions and took jan 19-24)
-# speed for all data = ~17 days, 3 hours, 17 minutes
-# new  data, no speed, no rsf = 
-# kittyR::meowR(sound = 3)
+toc() 
 
 END_window <- Sys.time()
 
