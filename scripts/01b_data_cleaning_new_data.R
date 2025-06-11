@@ -122,8 +122,9 @@ source('scripts/functions/2_plot_adj_modified.R')
 # the function also saved the adj_points where they are the points before/after points of interest, and the bad points
 
 
-# custom function to plot gps points over terrain map
+# custom function to plot gps points over terrain map, you can hover over the points on the map to get details of that point
 # Other maps to consider using: 'USGS.USTopo'
+# to add a raster layer to the map, refer to https://rstudio.github.io/leaflet/articles/raster.html
 movement_map <- function(data, map_type = 'Esri.WorldImagery') {
   leaflet(data = data) %>%
     addProviderTiles(provider = map_type) %>%
