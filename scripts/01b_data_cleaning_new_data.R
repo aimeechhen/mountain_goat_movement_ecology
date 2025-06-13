@@ -173,6 +173,8 @@ outlie_check <- outlier_plots(animal, return = TRUE) #outlier_plot(x), x is a si
 dev.off()
 #overlay tracking data on a map
 raw_tracks <- movement_map(animal)
+# view map
+raw_tracks
 # save an image of the plot
 mapshot(raw_tracks, file = paste0("./figures/outlie_checks/raw_tracks_", collar_id, ".png"))
 
@@ -226,6 +228,8 @@ recheck <- outlier_plots(flag_check) #outlier_plot(x), x is a single individual 
 dev.off()
 #overlay tracking data on a map
 clean_tracks <- movement_map(flag_check)
+# view map
+clean_tracks
 # save an image of the plot
 mapshot(clean_tracks, file = paste0("./figures/outlie_checks/clean_tracks_", collar_id, ".png"))
 
@@ -256,6 +260,7 @@ outlie_check <- outlier_plots(animal, return = TRUE) #outlier_plot(x), x is a si
 dev.off()
 #overlay tracking data on a map
 raw_tracks <- movement_map(animal)
+raw_tracks
 # save an image of the plot
 mapshot(raw_tracks, file = paste0("./figures/outlie_checks/raw_tracks_", collar_id, ".png"))
 
@@ -346,6 +351,7 @@ recheck <- outlier_plots(flag_check) #outlier_plot(x), x is a single individual 
 dev.off()
 #overlay tracking data on a map
 clean_tracks <- movement_map(flag_check)
+clean_tracks
 # save an image of the plot
 mapshot(clean_tracks, file = paste0("./figures/outlie_checks/clean_tracks_", collar_id, ".png"))
 
@@ -377,6 +383,7 @@ outlie_check <- outlier_plots(animal, return = TRUE) #outlier_plot(x), x is a si
 dev.off()
 #overlay tracking data on a map
 raw_tracks <- movement_map(animal)
+raw_tracks
 # save an image of the plot
 mapshot(raw_tracks, file = paste0("./figures/outlie_checks/raw_tracks_", collar_id, ".png"))
 
@@ -490,6 +497,7 @@ recheck <- outlier_plots(flag_check) #outlier_plot(x), x is a single individual 
 dev.off()
 #overlay tracking data on a map
 clean_tracks <- movement_map(flag_check)
+clean_tracks
 # save an image of the plot
 mapshot(clean_tracks, file = paste0("./figures/outlie_checks/clean_tracks_", collar_id, ".png"))
 
@@ -520,6 +528,7 @@ outlie_check <- outlier_plots(animal, return = TRUE) #outlier_plot(x), x is a si
 dev.off()
 #overlay tracking data on a map
 raw_tracks <- movement_map(animal)
+raw_tracks
 # save an image of the plot
 mapshot(raw_tracks, file = paste0("./figures/outlie_checks/raw_tracks_", collar_id, ".png"))
 
@@ -679,6 +688,7 @@ recheck <- outlier_plots(flag_check) #outlier_plot(x), x is a single individual 
 dev.off()
 #overlay tracking data on a map
 clean_tracks <- movement_map(flag_check)
+clean_tracks
 # save an image of the plot
 mapshot(clean_tracks, file = paste0("./figures/outlie_checks/clean_tracks_", collar_id, ".png"))
 
@@ -710,6 +720,7 @@ outlie_check <- outlier_plots(animal, return = TRUE) #outlier_plot(x), x is a si
 dev.off()
 #overlay tracking data on a map
 raw_tracks <- movement_map(animal)
+raw_tracks
 # save an image of the plot
 mapshot(raw_tracks, file = paste0("./figures/outlie_checks/raw_tracks_", collar_id, ".png"))
 
@@ -793,6 +804,7 @@ recheck <- outlier_plots(flag_check) #outlier_plot(x), x is a single individual 
 
 #overlay tracking data on a map
 clean_tracks <- movement_map(flag_check)
+clean_tracks
 # save an image of the plot
 mapshot(clean_tracks, file = paste0("./figures/outlie_checks/clean_tracks_", collar_id, ".png"))
 
@@ -825,6 +837,7 @@ outlie_check <- outlier_plots(animal, return = TRUE) #outlier_plot(x), x is a si
 dev.off()
 #overlay tracking data on a map
 raw_tracks <- movement_map(animal)
+raw_tracks
 # save an image of the plot
 mapshot(raw_tracks, file = paste0("./figures/outlie_checks/raw_tracks_", collar_id, ".png"))
 
@@ -941,6 +954,7 @@ recheck <- outlier_plots(flag_check) #outlier_plot(x), x is a single individual 
 dev.off()
 #overlay tracking data on a map
 clean_tracks <- movement_map(flag_check)
+clean_tracks
 # save an image of the plot
 mapshot(clean_tracks, file = paste0("./figures/outlie_checks/clean_tracks_", collar_id, ".png"))
 
