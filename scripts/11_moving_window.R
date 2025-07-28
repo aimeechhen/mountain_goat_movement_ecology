@@ -149,15 +149,19 @@ dist_escape <- project(dist_escape, "EPSG:4326")
 # convert into raster
 elev <- raster(elev)
 dist_escape <- raster(dist_escape)
-
+# scale rasters
+elev_scaled <- scale(elev)
+dist_escape_scaled <- scale(elev)
 
 # create a list of rasters
 r_list <- list(elev = elev, 
-               dist_escape = dist_escape)
+               dist_escape = dist_escape,
+               elev_scaled = elev_scaled,
+               dist_escape_scaled = dist_escape_scaled)
 
 
 #create folders
-saving_date <- "20250603"
+saving_date <- "20250728"
 folder_list <- c(paste0("fits_", saving_date), 
                  paste0("akdes_", saving_date),
                  paste0("mean_speed_", saving_date),
@@ -243,7 +247,10 @@ for(g in 1:length(tel_data)){
     window_end = as.POSIXct(rep(NA, length(times)), tz = "America/Vancouver"),
     n_fixes = numeric(length(times)),
     mean_elev = numeric(length(times)),
-    mean_dist_escape = numeric(length(times))
+    mean_dist_escape = numeric(length(times)), 
+    mean_elev_scaled = numeric(length(times)),
+    mean_dist_escape_scaled = numeric(length(times))
+    
   )
   
 
@@ -315,7 +322,8 @@ for(g in 1:length(tel_data)){
         # extract mean habitat values for each moving window segment (meters)
         covariates$mean_elev[i] <- mean(raster::extract(elev, SUBSET_SF))         
         covariates$mean_dist_escape[i] <- mean(raster::extract(dist_escape, SUBSET_SF))
-        
+        covariates$mean_elev_scaled[i] <- mean(raster::extract(elev_scaled, SUBSET_SF))         
+        covariates$mean_dist_escape_scaled[i] <- mean(raster::extract(dist_escape_scaled, SUBSET_SF))
         
       }
     }, error = function(e) {
