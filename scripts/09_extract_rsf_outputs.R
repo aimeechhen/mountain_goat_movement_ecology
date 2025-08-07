@@ -80,10 +80,10 @@ summary_outputs
 
 
 #..................................................................
-# rsf ----
+# rsf beta values----
 #.............................................................
 
-# extract rsf results (i.e., the rsf coefficients)
+# extract rsf coefficients from model summary
 
 i = 15
 summary(RSF[[i]], units = FALSE)
@@ -99,7 +99,7 @@ for(i in 1:length(RSF)){
   dist_escape_cov <- RSF[[i]]$COV['dist_escape','dist_escape']
   
   c(elev, elev_cov, dist_escape, dist_escape_cov)
-  
+  #combine all the columns
   res <- cbind(elev, elev_cov, dist_escape, dist_escape_cov)
   # rename the columns
   names(res) <- c("rsf_elev_min",
@@ -112,7 +112,7 @@ for(i in 1:length(RSF)){
                   "rsf_dist_escape_cov")
   
   res$individual.local.identifier <- RSF[[i]]@info$identity
-  
+  #store in a list
   rsf_list[[i]] <- res
 }
 
@@ -139,10 +139,38 @@ rsf_results$collar_id = as.factor(rsf_results$collar_id)
 
 
 
+
+
+#..................................................................................
+# rsf outputs ----
+
+# check rsf output data structure
+names(RSF)
+str(RSF)
+names(RSF[[1]])
+
+i <- 1
+
+results <- vector("list", length(RSF))
+for (i in 1:length(RSF)) {
+  # subset a single ctmm object
+  data <- RSF[[i]]
+  # extract information and put it into a df
+  results[[i]] <- data.frame(individual.local.identifier = names(RSF[i]),
+                          beta_elev = data$beta["elev"],
+                          beta_dist_escape = data$beta["dist_escape"],
+                          used_elev = data$used.mean["elev"],
+                          used_dist_escape = data$used.mean["dist_escape"],
+                          AIC = data$AIC,
+                          BIC = data$BIC,
+                          AICC = data$AICc)
+}
+
+res <- do.call(rbind, results)
+rownames(res) <- NULL
+# combine the model summary data and rsf output
+rsf_results <- merge(rsf_results, res, all.x = TRUE)
+
+
 save(rsf_results, file = "./data/rsf/rsf_results_20250505.rda")
 load("./data/rsf/rsf_results_20250505.rda")
-
-
-
-
-
