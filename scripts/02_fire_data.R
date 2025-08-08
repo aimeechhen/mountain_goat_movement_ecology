@@ -113,6 +113,48 @@ plot(FOIPPA[9], add = TRUE)
 
 
 
+#////////////////////////////////////////////////////////////////////////////////////////
+#//////////////////////////////////////////////////////////////////////////////////////// ----
+#////////////////////////////////////////////////////////////////////////////////////////
+
+# Distance to fire raster ----
+
+
+load('./data/fire/foippa.rda')
+ext(FOIPPA)
+
+
+r_list <- list()
+# Generate a distance to coast raster
+for (i in 1:nrow(FOIPPA)) {
+  # extract a perimeter
+  perimeter <- FOIPPA[i,]
+  # create a spatraster object
+  r <- rast(perimeter)
+  # convert vector object into a raster
+  r <- rasterize(perimeter, r)
+  # set the extent
+  ext(r) <- ext(FOIPPA)
+  # calculate the euclidean distance (from each cell to nearest non-NA cell)
+  dist_to_fire <- distance(r)
+  #store in a list
+  r_list[[i]] <- dist_to_fire
+}
+
+
+#convert into a raster stack (as a single raster)
+rstack <- rast(r_list)
+# name all the layers in the raster stack & format to ensure the 00:00:00 shows up in the name
+names(rstack) <- format(FOIPPA$timestamp, "%Y-%m-%d %H:%M:%S")
+
+#visualize rasters
+plot(rstack) # plot all the rasters in a grid
+plot(rstack[[1]]) # plot a single raster
+rm(r)
+
+writeRaster(rstack, "./data/fire/dist_to_fire_rasters.tif", overwrite = TRUE)
+dist_to_fire <- rast("./data/fire/dist_to_fire_rasters.tif")
+
 
 
 
