@@ -119,7 +119,7 @@ RESULTS <- data.frame(collar_id = character(length(FITS)),
 
 # create skeleton df to be filled in
 for (i in 1:length(FITS)) {
-  cat("Processing FITS element:", i, "\n")
+  # cat("Processing FITS element:", i, "\n")
   tryCatch({
     # Extract collar_id and year from names(FITS)
     RESULTS$collar_id[i] <- substr(names(FITS)[i], 1, 5)
@@ -158,7 +158,7 @@ for (i in 1:length(FITS)) {
 
 # if units are not consistent, therefore need to account for it
 for (i in 1:length(AKDES)) {
-  cat("Processing AKDE element:", i, "\n")
+  # cat("Processing AKDE element:", i, "\n")
   
   tryCatch({
     
