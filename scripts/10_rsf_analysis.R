@@ -1,6 +1,6 @@
 # rsf analysis
 
-
+library(lme4)
 library(ctmm)
 library(ggplot2)
 library(gridExtra)
@@ -14,9 +14,68 @@ rsf_results$collar_id <- as.factor(rsf_results$collar_id)
 rsf_results$goat_name <- as.factor(rsf_results$goat_name) 
 rsf_results$year <- as.factor(rsf_results$year) 
 
+# create a column to indicate fire year or not
+rsf_results$fire_year <- ifelse(rsf_results$year == "2023", 1, 0) # 1 = fire year, 0 = not a fire year
+
+
+# Ryan used RSF scores...where did he get these from and what are they?
+
+
+#.................................................................
+# does habitat use differ between years?
+rsf_model <- glmer(rsf_elev_est ~ year + (1|collar_id),  family =  gaussian("identity"), data = rsf_results)
+rsf_null <- glmer(rsf_elev_est ~ 1 + (1|collar_id),  family =  gaussian("identity"), data = rsf_results)
+
+rsf_test_results <- anova(rsf_model, rsf_null)
+paste("p = ", round(rsf_test_results$`Pr(>Chisq)`[2],2), sep = "") #p-value
+
+
+#.................................................................
+# does habitat use differ between fire vs no fire year?
+range(rsf_results$rsf_elev_est) 
+rsf_model <- glmer(rsf_elev_est ~ fire_year + (1|collar_id), 
+                   family = gaussian("identity"), # ranges from -1,1
+                   data = rsf_results,
+                   na.action = "na.fail")
+rsf_null <- glmer(rsf_elev_est ~ 1 + (1|collar_id), 
+                  family =  gaussian("identity"), # ranges from -1,1
+                  data = rsf_results,
+                  na.action = "na.fail")
+
+rsf_test <- anova(rsf_model, rsf_null) #refitting model(s) with ML (instead of REML)
+paste("p = ", round(rsf_test$`Pr(>Chisq)`[2],2), sep = "") #p-value
+
+summary(rsf_model)
+MuMIn::dredge(rsf_model)
+
+
+
+# distance to escape terrain
+range(rsf_results$rsf_dist_escape_est) 
+rsf_model2 <- glmer(rsf_dist_escape_est ~ fire_year + (1|collar_id), 
+                   family =  gaussian("identity"), # ranges from -1,1
+                   data = rsf_results,
+                   na.action = "na.fail")
+rsf_null2 <- glmer(rsf_dist_escape_est ~ 1 + (1|collar_id), 
+                  family =  gaussian("identity"), # ranges from -1,1
+                  data = rsf_results,
+                  na.action = "na.fail")
+
+rsf_test2 <- anova(rsf_model2, rsf_null2) # refitting model(s) with ML (instead of REML)
+paste("p = ", round(rsf_test2$`Pr(>Chisq)`[2],2), sep = "") #p-value
+
+summary(rsf_model2)
+MuMIn::dredge(rsf_model2)
+
+
+
+
+
+
+
 
 #...............................................................................
-## yearly rsf values i.e. mean value per year ----
+## yearly rsf coefficient values i.e. mean value per year ----
 
 names(rsf_results)
 # set columns for mean calculations
@@ -26,7 +85,7 @@ rsf_columns <- c("rsf_elev_min", "rsf_elev_est", "rsf_elev_max", "rsf_elev_cov",
 rsf_yearly <- aggregate(. ~ year, data = rsf_results[, c("year", rsf_columns)], FUN = mean, na.rm = TRUE)
 
 
-# rsf coefficent values
+# rsf coefficient values
 # Values near 0 = no preference
 # Values below 0 = selected for, to be closer to escape terrain
 # values above 0 = selected against
@@ -51,7 +110,7 @@ data_years <- as.factor(c('2019', '2020', '2021', '2022', '2023', '2024'))
 pd = position_dodge(width = 0.5)
 
 plot_rsf_elevation <-
-ggplot(data = rsf_results) +
+  ggplot(data = rsf_results) +
   geom_hline(yintercept = 0, col = "grey70", linetype = "dashed") +
   geom_pointrange(aes(x = goat_name, y = rsf_elev_est, ymin = rsf_elev_min, ymax = rsf_elev_max,
                       colour = year),
@@ -77,7 +136,7 @@ ggplot(data = rsf_results) +
   scale_colour_manual(values = year_palette,
                       breaks = data_years) + 
   # guides(colour = guide_legend(ncol = 1)) # set legend format, if you want it on the side
-guides(colour = guide_legend(nrow = 1)) # set legend format, if you want it top/bot
+  guides(colour = guide_legend(nrow = 1)) # set legend format, if you want it top/bot
 
 # 
 # ggsave(plot_rsf_elevation,
@@ -130,9 +189,9 @@ plot_rsf_dist_esc <-
 #                          ncol = 1)
 
 plot_rsf_individual <- ggarrange(plot_rsf_elevation, plot_rsf_dist_esc,
-          ncol = 1,
-          common.legend = TRUE,
-          legend = "top")
+                                 ncol = 1,
+                                 common.legend = TRUE,
+                                 legend = "top")
 plot_rsf_individual
 
 ggsave(plot_rsf_individual, 
