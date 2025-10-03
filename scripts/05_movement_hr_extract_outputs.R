@@ -33,6 +33,10 @@ fitsum
 # diffusion (hectares/day)
 
 fitsum <- summary(FITS[[1]], units = FALSE) # units = FALSE, using SI units
+fitsum
+fitsum2 <- summary(FITS[[1]], units = TRUE) # compare the units being used
+fitsum2
+
 fitsum <- summary(FITS[[1]], units = FALSE)$CI
 fitsum
 # CI units:
@@ -66,7 +70,7 @@ summary_outputs
 # 2 diffusion (square meters/second)   35
 # 3            speed (meters/second)   12
 # 4            τ[position] (seconds)   35
-# 5            τ[velocity] (seconds)   12
+# 5            τ[velocity] (seconds)   15
 
 
 
@@ -321,7 +325,7 @@ for (i in 1:length(FITS)) {
     
     RESULTS[i, c("bls_low", "bls_est", "bls_high")] <- c(bls_low, bls_est, bls_high)
   } else {
-    cat("no bls entry found", "\n")
+    # cat("no bls entry found", "\n")
     RESULTS[i, c("bls_low", "bls_est", "bls_high")] <- NA
   }
   

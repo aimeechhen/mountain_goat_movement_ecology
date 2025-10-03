@@ -68,13 +68,13 @@ load("data/home_range/akdes_20250505.rda")
 # AKDE shapefile: a boundary of some given quantile
 
 #save UD as raster:
-# dir.create("data/home_range/UD", recursive = TRUE)
-dir.create("data/home_range/combined_data_fire_period_all_years/UD", recursive = TRUE, showWarnings = TRUE)
+dir.create("data/home_range/UD", recursive = TRUE, showWarnings = TRUE)
+# dir.create("data/home_range/combined_data_fire_period_all_years/UD", recursive = TRUE, showWarnings = TRUE)
 
 #Note: includes distribution function = probability mass function
 #QUESTION: for the PMF you don't specify the level.UD because it's a PMF rather than a contour
 for (i in 1:length(AKDES)) {
-  UD_file <- file.path("data/home_range/combined_data_fire_period_all_years/UD", paste0(names(AKDES)[i], ".tif"))
+  UD_file <- file.path("data/home_range/UD", paste0(names(AKDES)[i], ".tif"))
   writeRaster(AKDES[[i]], filename = UD_file, format = 'GTiff', DF = "PMF",
               overwrite = TRUE)
 }
@@ -85,11 +85,11 @@ for (i in 1:length(AKDES)) {
 #save 95% range estimate UD as shapefile:
 # DF = "PMF" is not possible in a shp file, shp is only for points or boundaries
 #Note: this sometimes works and sometimes doesnt because it says writeShapefile() doesnt exist, writeVector() does work as of recent update, now it doesn't, currently using writeShapefile() as of 2024-03-12
-# dir.create("data/home_range/shp", recursive = TRUE)
-dir.create("data/home_range/combined_data_fire_period_all_years/shp", recursive = TRUE, showWarnings = TRUE)
+dir.create("data/home_range/shp", recursive = TRUE, showWarnings = TRUE)
+# dir.create("data/home_range/combined_data_fire_period_all_years/shp", recursive = TRUE, showWarnings = TRUE)
 
 for (name in names(AKDES)) {
-  shp.path <- file.path("data/home_range/combined_data_fire_period_all_years/shp", paste0(name, ".shp"))
+  shp.path <- file.path("data/home_range/shp", paste0(name, ".shp"))
   writeVector(AKDES[[name]], shp.path,
               level.UD=0.95, level=0.95, overwrite = TRUE)
 }

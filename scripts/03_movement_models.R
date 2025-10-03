@@ -120,8 +120,8 @@ END_speed <- Sys.time()
 
 save(SPEED_MEAN, file = "./data/movement_model/speed_mean_20250505.rda")
 save(SPEEDS_INSTA, file = "./data/movement_model/speeds_insta_20250505.rda")
-# load(file = "./data/movement_model/speed_mean_20250505.rda")
-# load(file = "./data/movement_model/speeds_insta_20250505.rda")
+# load("./data/movement_model/speed_mean_20250505.rda")
+# load("./data/movement_model/speeds_insta_20250505.rda")
 
 
 
