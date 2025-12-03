@@ -43,6 +43,7 @@ tel_data <- as.telemetry(combined_data[combined_data$data_source == 1,], mark.rm
 tel_df <- do.call(rbind, tel_data)
 
 
+
 # Convert collar data to ctmm telemetry object, and dont include screened outliers
 tel_data2 <- as.telemetry(combined_data[combined_data$data_source == 2,], mark.rm = FALSE,
                           keep = c("fix_id", "goat_id", "goat_name", "collar_id", "data_source", "outlier"))
@@ -80,35 +81,35 @@ load("./data/goat/prep/combined_data.rda")
 
 
 
-# 
-# 
-# #............................................................
-# # merge tel_data together for a single list to be used in outlie filtering
-# 
-# # check which goats are the same in both lists
-# intersect(names(tel_data), names(tel_data2))
-# 
-# # i.e., extract the df from list2, merge it to the df in list1
-# tel_data[["CA01"]] <- merge(tel_data[["CA01"]], tel_data2[["CA01"]], all = TRUE)
-# tel_data[["CA04"]] <- merge(tel_data[["CA04"]], tel_data2[["CA04"]], all = TRUE)
-# tel_data[["CA08"]] <- merge(tel_data[["CA08"]], tel_data2[["CA08"]], all = TRUE)
-# tel_data[["CA09"]] <- merge(tel_data[["CA09"]], tel_data2[["CA09"]], all = TRUE)
-# tel_data[["CA11"]] <- merge(tel_data[["CA11"]], tel_data2[["CA11"]], all = TRUE)
-# tel_data[["CA12"]] <- merge(tel_data[["CA12"]], tel_data2[["CA12"]], all = TRUE)
-# 
-# # then order the df by fix_id
-# tel_data[["CA01"]] <- tel_data[["CA01"]] [order(tel_data[["CA01"]][["fix_id"]]),]
-# tel_data[["CA04"]] <- tel_data[["CA04"]] [order(tel_data[["CA04"]][["fix_id"]]),]
-# tel_data[["CA08"]] <- tel_data[["CA08"]] [order(tel_data[["CA08"]][["fix_id"]]),]
-# tel_data[["CA09"]] <- tel_data[["CA09"]] [order(tel_data[["CA09"]][["fix_id"]]),]
-# tel_data[["CA11"]] <- tel_data[["CA11"]] [order(tel_data[["CA11"]][["fix_id"]]),]
-# tel_data[["CA12"]] <- tel_data[["CA12"]] [order(tel_data[["CA12"]][["fix_id"]]),]
-# 
-# str(tel_data[["CA08"]])
-# 
-# 
-# save(tel_data, file = "./data/goat/prep/tel_data_merged.rda")
-# load("./data/goat/prep/tel_data_merged.rda")
+
+
+#............................................................
+# merge tel_data together for a single list to be used in outlie filtering
+
+# check which goats are the same in both lists
+intersect(names(tel_data), names(tel_data2))
+
+# i.e., extract the df from list2, merge it to the df in list1
+tel_data[["CA01"]] <- merge(tel_data[["CA01"]], tel_data2[["CA01"]], all = TRUE)
+tel_data[["CA04"]] <- merge(tel_data[["CA04"]], tel_data2[["CA04"]], all = TRUE)
+tel_data[["CA08"]] <- merge(tel_data[["CA08"]], tel_data2[["CA08"]], all = TRUE)
+tel_data[["CA09"]] <- merge(tel_data[["CA09"]], tel_data2[["CA09"]], all = TRUE)
+tel_data[["CA11"]] <- merge(tel_data[["CA11"]], tel_data2[["CA11"]], all = TRUE)
+tel_data[["CA12"]] <- merge(tel_data[["CA12"]], tel_data2[["CA12"]], all = TRUE)
+
+# then order the df by fix_id
+tel_data[["CA01"]] <- tel_data[["CA01"]] [order(tel_data[["CA01"]][["fix_id"]]),]
+tel_data[["CA04"]] <- tel_data[["CA04"]] [order(tel_data[["CA04"]][["fix_id"]]),]
+tel_data[["CA08"]] <- tel_data[["CA08"]] [order(tel_data[["CA08"]][["fix_id"]]),]
+tel_data[["CA09"]] <- tel_data[["CA09"]] [order(tel_data[["CA09"]][["fix_id"]]),]
+tel_data[["CA11"]] <- tel_data[["CA11"]] [order(tel_data[["CA11"]][["fix_id"]]),]
+tel_data[["CA12"]] <- tel_data[["CA12"]] [order(tel_data[["CA12"]][["fix_id"]]),]
+
+str(tel_data[["CA08"]])
+
+
+save(tel_data, file = "./data/goat/prep/tel_data_merged.rda")
+load("./data/goat/prep/tel_data_merged.rda")
 
 
 
