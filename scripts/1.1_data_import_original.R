@@ -9,6 +9,12 @@ library(leaflet)
 # create a folder to store all the preprocessing intermediate stages of the tracking data
 dir.create(path = "./data/goat/prep/", showWarnings = TRUE)
 
+# inspect a tracking data file & layers
+st_layers('./data/goat/raw/original/GPS_Collar30548_20231005121804.gpx')
+# use `track_points` layer
+raw <- st_read("./data/goat/raw/original/GPS_Collar30548_20231005121804.gpx", layer = 'track_points')
+
+
 # list all the gps tracking files
 files <- list.files('./data/goat/raw/original/', full.names = TRUE)
 
@@ -50,7 +56,8 @@ raw_original <- st_drop_geometry(raw_original)
 raw_original <- subset(raw_original, select = c(collar_id, time, longitude, latitude, ele, fix, hdop, vdop, pdop))
 
 # indicate data origin/source, what dataset did they come from
-raw_original$data_source <- "original"
+# number indicates the order that the dataset were given (original = 1, batch 2/new = 2, etc)
+raw_original$data_source <- 1
 
 #check the timezone
 head(raw_original$time) # PDT tz = "America/Vancouver"

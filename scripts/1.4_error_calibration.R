@@ -5,10 +5,10 @@ library(ctmm)
 # referring to https://zslpublications.onlinelibrary.wiley.com/action/downloadSupplement?doi=10.1111%2Facv.12728&file=acv12728-sup-0002-AppendixS2.pdf
 
 
-load("./data/goat/prep/raw_data_prepped.rda")
+load("./data/goat/prep/raw_original_screened_prepped.rda")
 
 # subset calibration data out (include which() to avoid getting NA rows)
-calibration_data <- raw_data[which(raw_data$calibration_data == 1),] #575
+calibration_data <- raw_original[which(raw_original$calibration_data == 1),] #575
 
 # how many non-moving fixes for each collar?
 table(calibration_data$collar_id)
@@ -45,6 +45,7 @@ summary(UERE)
 # 
 # low      est     high
 # 3D 10.73347 11.19984 11.66596
+
 
 save(UERE, file = "./data/goat/prep/uere.rda")
 load("./data/goat/prep/uere.rda")

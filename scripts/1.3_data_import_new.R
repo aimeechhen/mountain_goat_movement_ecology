@@ -25,7 +25,7 @@ str(raw_new)
 raw_new <- subset(raw_new, select = -c(animal, collar_name, scts_utc, mortality_status, origin, main_v, beacon_v))
 
 # indicate data origin
-raw_new$data_source <- "second"
+raw_new$data_source <- 2
 
 #check the timezone
 tz(raw_new$acq_time_utc)
@@ -41,8 +41,7 @@ raw_new$date_local <- as.POSIXct(format(raw_new$timestamp_local, "%Y-%m-%d"), tz
 # rename to match generic naming
 raw_new <- rename(raw_new, c(timestamp_utc = acq_time_utc,
                                longitude = longitude_deg,
-                               latitude = latitude_deg,
-                             fix = fix_type))
+                               latitude = latitude_deg))
 
 # plot raw_new data 
 ggplot(raw_new) +
@@ -74,6 +73,65 @@ raw_new$data_source <- as.factor(raw_new$data_source)
 # save as rda to retain formatting
 save(raw_new, file = "./data/goat/prep/raw_new.rda")
 load("./data/goat/prep/raw_new.rda")
+
+# clean environment
+rm(list = ls())
+gc()
+
+
+
+
+#.....................................................................
+# prep data
+#.....................................................................
+
+
+load("./data/goat/prep/raw_original_screened_prepped.rda")
+load("./data/goat/prep/raw_new.rda")
+load("./data/goat/goat_info.rda")
+
+str(raw_original)
+str(raw_new)
+
+# check for duplicates in new data
+dupes <- raw_new[paste(raw_new$collar_id, raw_new$timestamp_utc) %in% 
+      paste(raw_original$collar_id, raw_original$timestamp_utc), ] #14
+
+
+# drop duplicated rows
+raw_new <- raw_new[!(paste(raw_new$collar_id, raw_new$timestamp_utc) %in%
+                       paste(raw_original$collar_id, raw_original$timestamp_utc)),]
+
+
+
+#....................................................................
+# add goat info ----
+#....................................................................
+
+# drop goat_03 or going to have merging issues due to two goats one collar dilemma
+goat_info <- goat_info[goat_info$goat_id != "CA03",]
+# drop the goat 03 factor level
+goat_info$goat_id <- droplevels(goat_info$goat_id)
+goat_info$goat_name <- droplevels(goat_info$goat_name)
+goat_info$collar_id <- droplevels(goat_info$collar_id)
+
+# check for same column names to avoid duplication, add goat info to the raw data
+intersect(colnames(raw_new), colnames(goat_info))
+
+# add goat info to df
+raw_new <- merge(raw_new, goat_info[, c("collar_id","goat_name", "goat_id")], by = "collar_id", all.x = TRUE)
+raw_new <- relocate(raw_new, c(goat_id, goat_name), .before = collar_id)
+raw_new <- relocate(raw_new, timestamp_utc, .after = collar_id)
+
+# reorder
+raw_new <- raw_new[order(raw_new$goat_id, raw_new$timestamp_utc),]
+rownames(raw_new) <- NULL
+
+# add an outlier column
+raw_new$outlier <- 0
+
+save(raw_new, file = "./data/goat/prep/raw_new_prepped.rda")
+load("./data/goat/prep/raw_new_prepped.rda")
 
 # clean environment
 rm(list = ls())
