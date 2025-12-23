@@ -7,7 +7,6 @@
 helicopter/
 
 v1/data/
-v1/figures/
 v1/figures/distace_to_fire
 v1/figures/hsf
 v1/figures/map
@@ -22,32 +21,13 @@ v1/scripts/fire
 v1/scripts/ssf
 v1/scripts/Stefano
 
-
-
-data/goat/
-
-figures/figures (old)/
-figures/outlie_filtering/20251129/
-figures/outlie_filtering/20251202/original/
-figures/outlie_filtering/20251202/new/
-figures/outlie_filtering/archived_pathway_plots/
-
+data/
+figures/
+scripts/
 scripts/functions/archived
 scripts/stefano_mezzini/
 
 writing/msc_work/
-
-
-
-
-
-scripts/archived/
-scripts/scripts (old)/
-
-
-scripts/fire/archived/
-scripts/fire/other fire sources attempt/
-scripts/fire/rgee and goes/
 
 
 
