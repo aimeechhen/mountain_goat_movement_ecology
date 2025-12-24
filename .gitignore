@@ -6,21 +6,6 @@
 
 helicopter/
 
-v1/data/
-v1/figures/distace_to_fire
-v1/figures/hsf
-v1/figures/map
-v1/figures/matrix
-v1/figures/outlie_checks
-v1/figures/rsf
-v1/figures/ssf
-v1/figures/window_analysis
-
-v1/scripts/archived
-v1/scripts/fire
-v1/scripts/ssf
-v1/scripts/Stefano
-
 data/
 figures/
 scripts/
