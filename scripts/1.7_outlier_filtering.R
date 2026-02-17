@@ -1,5 +1,7 @@
 
 # 2025-04-30
+# 2025-11-22
+# 2025-12-10
 
 # Mountain goat GPS collar data and supplementary information was provided by BC Parks
 
@@ -21,29 +23,34 @@ library(sf)
 # load("./data/goat/prep/raw_new_prepped.rda")
 load("./data/goat/prep/combined_data.rda")
 # load("./data/goat/prep/tel_data_merged.rda")
-load("./data/goat/prep/uere.rda")
+# load("./data/goat/prep/uere.rda")
 
 # subset data to the version/source youre working 
-raw_data <- combined_data[combined_data$data_source == 1,] # original
+# raw_data <- combined_data[combined_data$data_source == 1,] # original
 # raw_data <- combined_data[combined_data$data_source == 2,] # new
+
+# need to drop because not including measurement error
+raw_data <- subset(combined_data, select = -c(fix_type, hdop, vdop, pdop, dop, altitude_m))
+
 
 # Convert collar data to ctmm telemetry object
 # must separate the datasets or will have convert issues with hdop and vdop values because one dataset has pdop and the other dop, also if you combine the tel_data into one list and merge the df, youll have issues as well when trying to apply uere. just best to keep them separated overall and check each by itself
-tel_data <- as.telemetry(raw_data, 
+tel_data <- as.telemetry(raw_data,
+# tel_data <- as.telemetry(combined_data, 
                          mark.rm = TRUE,
                          keep = c("fix_id", "goat_id", "goat_name", "collar_id", "data_source"))
 
-# create a folder to store images during data cleaning process
-# outlie_folder <- "./figures/outlie_filtering/20251129/original/"
-outlie_folder <- "./figures/outlie_filtering/20251202/original/" # changed speed value threshold for good location estimate checks
-# outlie_folder <- "./figures/outlie_filtering/20251129/new/"
-# outlie_folder <- "./figures/outlie_filtering/20251202/new/"
+# set the folder to store images during data cleaning process
+# outlie_folder <- "./figures/outlie_filtering/20251210/old/"
+# outlie_folder <- "./figures/outlie_filtering/20251210/new/"
+outlie_folder <- "./figures/outlie_filtering/20251230/"
+
 
 # create folder if it doesnt exist
 # dir.create(outlie_folder, recursive = TRUE, showWarnings = TRUE)
 
 # create an empty list to store all the outlie data
-# out_data_good_loc_list <- list()
+out_data_good_loc_list <- list()
 # out_data_potential_list <- list()
 # create an empty vector to record potential outliers
 # potential_outliers <- vector()
@@ -56,32 +63,11 @@ for (i in 1:length(tel_data)) {
   rownames(tel_data[[i]] ) <- tel_data[[i]]$fix_id
 }
 
-#.........................................................................
-# Error calibration ----
-#.........................................................................
-
-# "For each location estimate, the GPS trackers recorded a unitless Horizontal Dilution of Precision (HDOP) value, which is a measure of the accuracy of each positional fix." 
-# normally -> To prepare the data for error-informed analyses, we converted the HDOP values into calibrated error circles by estimating an equivalent range error from 6948 calibration data points where a tag had been left in a fixed location (Fleming et al. 2020)."
-# if no calibration data then assign RMS UERE value,  i.e. add User Equivalent Range Error or a default error of 10 m, i.e., 10-meter error is usually a good guess for 3D GPS data (https://cran.r-project.org/web/packages/ctmm/vignettes/error.html)
-
-# Apply the UERE to the dataset
-uere(tel_data) <- UERE
-# summary(UERE)
-# summary(uere(tel_data[[3]])) # this should be the same as summary(UERE)
-# plot(tel_data[[3]],error=2)  # plot with 95% error discs
+rm(raw_data)
 
 
-# calibration data = like if the collar is not moving i.e., morality signal
-# hdop is unitless but if you need to put some kind of units its like hdop=1 is like 10 mins from that stationary signal
-
-# gps error checks with elevation was initially investigated as there were discrepancies when comparing (refer to gps error checks r script), however, 
-# dop values are incorporated into ctmm R package and accounts for them because setting a threshold and discarding points is a good approach (for more details, refer to https://doi.org/10.1186/s40317-020-00194-z) 
-
-
-
-
-#***but what about when using ssf and related packages?***
-
+# cannot calibrate the fixes due to calibration data is only of 1 fix type, cannot apply error models without a lot of additional work
+# therefore, not including location error (i.e., fix type, dop and UERE)
 
 
 
@@ -99,6 +85,17 @@ uere(tel_data) <- UERE
 #2: gps points connected
 #3: outlie() output of distance and speed, note: "out <- outlie(telemetry, units = FALSE)", 'out' is the output of outlier within the custom function
 #4: outlie() data i.e., min speed vs distance
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# output of outlie(), probably should move to outlie2() function
+
+# distance column = `core deviation' denotes distances from the median longitude & latitude
+# the speed column = `minimum speed' denotes the minimum speed required to explain the location estimate's displacement as straight-line motion
+# NOTE: The speed estimates here are tailored for outlier detection and have poor statistical efficiency.
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 # plot_range()
 # take a closer look at the points
@@ -120,7 +117,8 @@ uere(tel_data) <- UERE
 
 # expands the outlie() function to include columns being kept in as.telemetry(keep =) because outlie() does not have this option available, therefore you get the outlie() output data and grabs the columns that was indicated in as.telemetry() which contains fix_id to flag outlier points based on its fix_id
 
-source('scripts/functions/plot_outlie.R') 
+# source('scripts/functions/plot_outlie.R') 
+source('scripts/functions/plot_outlie_w_map.R') 
 source('scripts/functions/plot_range.R')
 source('scripts/functions/plot_movement_map.R')
 source('scripts/functions/outlie2.R') 
@@ -147,7 +145,7 @@ source('scripts/functions/outlie2.R')
 
 # refer to the outlier_filtering folder for the script for each individual
 
-
+# Average daily movement is about 1.7km/day as per Kim Poole convo, keep in mind that they may do bursts so don't set it too low
 
 
 #.................................
@@ -161,6 +159,5 @@ source('scripts/functions/outlie2.R')
 
 
 # and saved all the plots and maps then i went back in again reviewed and circled all potential outliers from the saved images to then ask help from Dr. Noonan if they are potential outliers then if they are, continue with point_checks plot_range()
-
 
 
