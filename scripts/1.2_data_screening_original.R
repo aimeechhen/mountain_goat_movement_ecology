@@ -540,35 +540,6 @@ raw_original <- relocate(raw_original, c(goat_id, goat_name), .before = collar_i
 raw_original <- relocate(raw_original, timestamp_utc, .after = collar_id)
 
 
-#............................................................
-# dop checks
-#............................................................
-
-# check for NA pdop values
-raw_original[is.na(raw_original$pdop),]
-test <- raw_original[is.na(raw_original$pdop),] #56, theyre all hdop values
-
-# Fleming et al 2021, S3.1 DOP Proxies, Co-opting DOP values
-# In lieu of HDOP values, some GPS devices only record "position DOP" (PDOP), "geometric DOP" (GDOP), or ambiguous DOP values. PDOP values combine HDOP and VDOP; GDOP values combine PDOP and "time DOP" (TDOP) values. As HDOP and VDOP values are both a function of satellite number and spread, they are correlated. Therefore, it is reasonable to co-opt or appropriate related DOP values in the absence of proper HDOP and VDOP values.
-# ...assuming the data are not of a special variety (Argos Doppler-shift or e-obs), 
-# then the as.telemetry() will first look for an HDOP value. If HDOP values are not found, then as.telemetry() will look for ambiguous DOP values, followed by PDOP and then GDOP values. 
-# If no DOP values are found, then as.telemetry() will look for the reported number of satellites, and apply model (S3.1) to approximate DOP values 
-
-# substitute hdop values for missing pdop 
-raw_original$pdop <- ifelse(is.na(raw_original$pdop & !is.na(raw_original$hdop)), raw_original$hdop, raw_original$pdop)
-# need to do this separately from the new data because new data contains only dop value and when combining the two datasets and having dop and pdop, you will run into issues of getting hdop values of all 100, and vdop all at Inf. Even if you drop fix (location class) column but you want to keep fix type because 
-# By default, ctmm's as.telemetry() function will assume that any GPS x-type column is meaningful, and create a corresponding location class column in the output telemetry data object. Model selection can then determine whether or not extra location classes are supported by the calibration data. as.telemetry() also checks if some location estimates lack corresponding speed, altitude, and/or DOP values, in which case location classes will be created to distinguish the level of missingness, as this often corresponds to different location estimation algorithms.
-
-# check again for NA pdop values
-raw_original[is.na(raw_original$pdop),] #none, all pdop values now
-
-# drop hdop, vdop columns
-raw_original <- subset(raw_original, select = -c(hdop, vdop))
-
-# inspect fix types
-unique(raw_original$fix) # Note 3D =/= 3D Valid
-raw_original <- rename(raw_original, fix_type = fix)
-
 str(raw_original)
 # reorder based on timestamp and goat_id, using utc time hence forth
 raw_original <- raw_original[order(raw_original$goat_id, raw_original$timestamp_utc),]
@@ -579,6 +550,15 @@ rownames(raw_original) <- NULL
 raw_original$fix_id <- rownames(raw_original)
 raw_original <- relocate(raw_original, fix_id, .before = goat_id)
 raw_original$fix_id <- as.numeric(raw_original$fix_id)
+raw_original <- rename(raw_original, fix_type = fix)
+
+# create new columns to format names to match required for ctmm based on Movebank critera:
+raw_original$individual.local.identifier <- raw_original$goat_id
+raw_original$location.lat <- raw_original$latitude
+raw_original$location.long <- raw_original$longitude
+raw_original$timestamp <- raw_original$timestamp_utc
+
+
 
 save(raw_original, file = "./data/goat/prep/raw_original_screened_prepped.rda")
 load("./data/goat/prep/raw_original_screened_prepped.rda")
