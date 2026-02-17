@@ -1,11 +1,31 @@
 
 library(ctmm)
+library(paletteer)
+
+
+# Based on Noonan et al 2022 Appendix S2 
+# https://zslpublications.onlinelibrary.wiley.com/action/downloadSupplement?doi=10.1111%2Facv.12728&file=acv12728-sup-0002-AppendixS2.pdf
+
+# added a 4th panel of movement pathway on a map
+
+# Plot 4 panels to check data for outliers via visualization (give it a minute to execute)
+
+# Plot panel description:
+#1: telemetry gps points
+#2: location and velocities, from the outlie() function
+#3: outlie() output of distance and speed, note: "out <- outlie(telemetry, units = FALSE)", 'out' is the output of outlier() within the custom function, plotting that output
+#4: telemetry path on top of a map
+
+# Additional information:
+# output of outlie()
+
+# distance column = `core deviation' denotes distances from the median longitude & latitude
+# the speed column = `minimum speed' denotes the minimum speed required to explain the location estimate's displacement as straight-line motion
+# NOTE: The speed estimates here are tailored for outlier detection and have poor statistical efficiency.
 
 #............................................................................
 # outlie plots  ----
 #............................................................................
-
-# based on the concept of Stefano Mezzini's outlier_plots.R script (https://github.com/QuantitativeEcologyLab/bc-mammals-temperature/blob/main/functions/outlier_plots.R)
 
 # 'telemetry' = the ctmm telemetry data of one individual
 
@@ -30,9 +50,21 @@ plot_outlie <- function(telemetry,
   ctmm::plot(out, units = FALSE)
   title(main = "speed vs distance")
   
-  # plot telemetry path 
-  plot(telemetry$x, telemetry$y, 
-       type = 'l', xlab = 'x (m)', ylab = 'y (m)')
+  # plot telemetry path without map, uncomment this section and comment out on map section if preferred
+  # plot(telemetry$x, telemetry$y, 
+  #      type = 'l', xlab = 'x (m)', ylab = 'y (m)')
+  # title(main = "telemetry path")
+  
+  # plot telemetry path on map
+  coords <- st_coordinates(st_transform(as.sf(telemetry),  "EPSG:3857")) # convert to sf object, transform to 3857 crs, extract coordinates
+  basemaps::basemap_plot(ext = st_transform(st_bbox(c(xmin = min(telemetry$longitude) - 0.01,
+                                            ymin = min(telemetry$latitude) - 0.01,
+                                            xmax = max(telemetry$longitude) + 0.01,
+                                            ymax = max(telemetry$latitude) + 0.01), crs = 4326), "EPSG:3857"),
+               map_service = "esri",
+               map_type = "world_imagery")
+  # add the path
+  lines(coords[,1], coords[,2], col = "red", lwd = 2)
   title(main = "telemetry path")
   
   mtext(paste0("ID: ", unique(telemetry$individual.local.identifier)), 
