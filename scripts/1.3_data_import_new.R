@@ -22,7 +22,7 @@ str(raw_new)
 # scts_utc = data is sent or received to Iridium satellite network (origin column), i.e., sent to system .-. after acquisition time
 
 # drop animal column or error will occur when trying to convert to a ctmm telemetry object, and drop columns that provide duplicate information such as collar number
-raw_new <- subset(raw_new, select = -c(animal, collar_name, scts_utc, mortality_status, origin, main_v, beacon_v))
+raw_new <- subset(raw_new, select = -c(animal, collar_name, scts_utc))
 
 # indicate data origin
 raw_new$data_source <- 2
@@ -86,22 +86,9 @@ gc()
 #.....................................................................
 
 
-load("./data/goat/prep/raw_original_screened_prepped.rda")
 load("./data/goat/prep/raw_new.rda")
 load("./data/goat/goat_info.rda")
-
-str(raw_original)
 str(raw_new)
-
-# check for duplicates in new data
-dupes <- raw_new[paste(raw_new$collar_id, raw_new$timestamp_utc) %in% 
-      paste(raw_original$collar_id, raw_original$timestamp_utc), ] #14
-
-
-# drop duplicated rows
-raw_new <- raw_new[!(paste(raw_new$collar_id, raw_new$timestamp_utc) %in%
-                       paste(raw_original$collar_id, raw_original$timestamp_utc)),]
-
 
 
 #....................................................................
@@ -130,9 +117,22 @@ rownames(raw_new) <- NULL
 # add an outlier column
 raw_new$outlier <- 0
 
+# create new columns to format names to match required for ctmm based on Movebank critera:
+raw_new$individual.local.identifier <- raw_new$goat_id
+raw_new$location.lat <- raw_new$latitude
+raw_new$location.long <- raw_new$longitude
+raw_new$timestamp <- raw_new$timestamp_utc
+
+
+
 save(raw_new, file = "./data/goat/prep/raw_new_prepped.rda")
 load("./data/goat/prep/raw_new_prepped.rda")
 
 # clean environment
 rm(list = ls())
 gc()
+
+
+
+names(raw_new)
+unique(raw_new$goat_id)
