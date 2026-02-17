@@ -73,3 +73,23 @@ data.frame(colnames(goat_data))
 # column 1-31 tracking data + goat info
 # column 32-40 outlie() data
 # column 41-49 analyses/fire study prep
+
+
+library(ctmm)
+
+load(file = "./data/goat/goat_data.rda")
+
+# drop certain columns or will have issues when converting into ctmm object. not including measurement error, refer to previous scripts for explanation and why
+goat_data <- subset(goat_data, select = -c(fix_type, hdop, vdop, pdop, dop, altitude_m))
+
+# convert to ctmm object
+tel_data <- as.telemetry(raw_data, mark.rm = TRUE,
+                         keep = c("fix_id", "goat_id", "goat_name", "collar_id", "id_year"))
+
+# ensure each df in the list is in the correct order with matching row name
+for (i in 1:length(tel_data)) {
+  # order the df based on fix_id
+  tel_data[[i]] <- tel_data[[i]][order(tel_data[[i]][["fix_id"]]),]
+  # set the rowname to match the fix_id
+  rownames(tel_data[[i]] ) <- tel_data[[i]]$fix_id
+}
