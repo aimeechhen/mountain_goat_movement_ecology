@@ -1,9 +1,20 @@
 
 # extending the outlie() function from the ctmm package
 
-# the purpose of this function is to be able behave similar to as.telemetry by having the 'keep' argument because outlie() doesnt have those options
+# the purpose of this function is to be able behave similar to as.telemetry, it expands the outlie() function to be able include columns and adds an argument to indicate the columns like in as.telemetry(keep =) because outlie() does not have this option available, so this allows for it. you get the outlie() output data and grab the columns that was indicated in as.telemetry() which contains fix_id column to flag outlier points based on its fix_id
 
-# id = identifier for the gps point to refer to when flagging outliers
+# id = column to refer to as the identifier for the gps point to refer to when flagging outliers
+
+# Additional information:
+# output of outlie()
+
+# distance column = `core deviation' denotes distances from the median longitude & latitude
+# the speed column = `minimum speed' denotes the minimum speed required to explain the location estimate's displacement as straight-line motion
+# NOTE: The speed estimates here are tailored for outlier detection and have poor statistical efficiency.
+
+#............................................................................
+# outlie data ----
+#............................................................................
 
 outlie2 <- function(telemetry, id = "id") {
   # check if telemetry object contains a id column
@@ -44,6 +55,6 @@ outlie2 <- function(telemetry, id = "id") {
   
   output$flag_outlier <- 0
   # end the function and get the output
-  return(output) 
+  return(output)  # ends the function and spits out the outcome of whatever you did, some value, object, etc
   
 }
