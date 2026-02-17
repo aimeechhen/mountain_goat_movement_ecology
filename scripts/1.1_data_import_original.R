@@ -105,6 +105,9 @@ raw_original[duplicated(raw_original[, c("timestamp_local", "collar_id")]), ] # 
 raw_original$collar_id <- as.factor(raw_original$collar_id)
 raw_original$data_source <- as.factor(raw_original$data_source)
 
+# check last date for dataset
+aggregate(timestamp ~ goat_id, data = raw_original, max)
+
 save(raw_original, file = "./data/goat/prep/raw_original.rda")
 load("./data/goat/prep/raw_original.rda")
 
