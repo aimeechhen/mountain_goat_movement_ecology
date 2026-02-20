@@ -11,23 +11,25 @@ library(crayon)
 # Import data ----
 #...........................................................
 
-# Import combined collar data (original + cleaned new)
-load("./scripts/working/data/collar_data/fire_period_all_years_combined_data_20250505.rda")
-# formatting
-goat_data$timestamp <- as.POSIXct(goat_data$timestamp, format = "%Y-%m-%d %H:%M:%S")
-goat_data$date <- as.Date(goat_data$date, "%Y-%m-%d")
-goat_data$goat_name <- as.factor(goat_data$goat_name)
-goat_data$collar_id <- as.factor(goat_data$collar_id)
+load(file = "./data/goat/study_data.rda")
 
-#format names to match required for ctmm based on Movebank critera:
-# create a column combining collar_id and year to avoid needing to subset by individuals and year, it will create a unique identifier based on the individual and the year of the data and then those will be grouped together as the data for each individual for each year
-goat_data$individual.local.identifier <- paste(goat_data$collar_id, goat_data$year, sep = "_")
-# format names to match
-goat_data <- plyr::rename(goat_data, c('latitude' = 'location.lat', 
-                                       'longitude' = 'location.long'))
+# drop certain columns or will have issues when converting into ctmm object. not including measurement error, refer to previous scripts for explanation and why
+study_data <- subset(study_data, select = -c(fix_type, hdop, vdop, pdop, dop, altitude_m))
+# because no DOP is included, ctmm is going to assume DOP = 1
 
-# convert data to a ctmm telemetry object
-tel_data <- as.telemetry(goat_data, mark.rm = TRUE)
+# set id_year as individual.local.identifier to avoid needing to subset by individuals and year, it will create a unique identifier based on the individual and the year of the data and then those will be grouped together as the data for each individual for each year
+study_data$individual.local.identifier <- study_data$id_year
+
+# convert to ctmm object
+tel_data <- as.telemetry(study_data, mark.rm = TRUE,
+                         keep = c("fix_id", "goat_id", "goat_name", "collar_id", "id_year"))
+# 35 items 6x6=36-1= 35 CA12 got collared in 2020, missing 1 year = 35 (6 goats x 6 years except 1 has 5 years)
+
+# ensure each df in the list is in the correct order with matching row name
+for (i in 1:length(tel_data)) {
+  # order rows in each df in the list based on fix_id
+  tel_data[[i]] <- tel_data[[i]][order(tel_data[[i]][["fix_id"]]),]
+}
 
 # summary of the gps data, (i.e., interval, period, long, lat info)
 summary(tel_data) # mostly ~6.25h with a few at 5.5h interval
@@ -53,11 +55,10 @@ for(i in 1:length(tel_data)){
   DATA <- tel_data[[i]]
   
   # create guesstimate non-interactively
-  GUESS <- ctmm.guess(DATA,CTMM=ctmm(error=FALSE),interactive=FALSE) # Error is off for now to speed up the process, error = true will help avoid iid models and push towards ou and ouf models
+  GUESS <- ctmm.guess(DATA,CTMM=ctmm(error=FALSE),interactive=FALSE) # Error is off for now to speed up the process, error = true will help avoid iid models and push towards ou and ouf models, keeping error = FALSE because not using any error models
   # fit movement models and select best fit
   FITS[[i]] <- ctmm.select(DATA, GUESS, trace = 3, cores=-1)
 
-  
 }
 
 #rename for convenience
@@ -66,12 +67,12 @@ names(FITS) <- names(tel_data)
 toc() #~1.46h, #9.698333 mins; full = ~12.5min, 
 # combined: error on = 6.37h, error off = 12.8min
 END_movement <- Sys.time()
-# kittyR::meowR(sound = 3)
 
 
-dir.create("data/movement_model/", recursive = TRUE, showWarnings = TRUE)
-save(FITS,file="data/movement_model/fits_20250505.rda")
-# load("data/movement_model/fits_20250505.rda")
+
+dir.create("./data/movement_model/", recursive = TRUE, showWarnings = TRUE)
+save(FITS,file="data/movement_model/fits.rda")
+# load("data/movement_model/fits.rda")
 
 
 
@@ -93,7 +94,7 @@ for(i in 1:length(tel_data)){
   DATA <- tel_data[[i]]
   fits <- FITS[[i]]
   
-  # estimate mean speed (may be a mix of OU and OUF, so using robust = true), error = TRUE caused issues with no converging
+  # estimate mean speed (may be a mix of OU and OUF, so using robust = true), error = TRUE caused issues with no converging, not using error models, error = FALSE
   SPEED_MEAN[[i]] <- speed(object = DATA, CTMM = fits,
                            robust = TRUE, units = FALSE, trace = TRUE, cores = -1)
   # estimate instantaneous speed -> Error in as.POSIXlt.POSIXct(x, tz) : invalid 'tz' value
