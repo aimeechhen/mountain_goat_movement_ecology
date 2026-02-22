@@ -35,23 +35,22 @@ plot(slope)
 # slopes over 50 = a proxy-ish for escape terrain, but does not account for ruggedness
 slope50 <- ifel(slope >= 50, 1, 0) # ifel() specific to terra package
 plot(slope50)
+names(slope50) <- "slope50degree_50m" #50m resolution, renaming layer name so when importing it, its correct and not shown as "slope" for reference (avoid confusion)
 slope50
 
-slope50_50m <- slope50 #50m resolution, setting variable name so when importing it, its indicated for reference (avoid confusion)
-
 # writeRaster(slope50, file = "./data/environment/slope50degree_25m.tif", overwrite = TRUE)
-writeRaster(slope50_50m, file = "./data/environment/slope50degree_50m.tif", overwrite = TRUE)
+writeRaster(slope50, file = "./data/environment/slope50degree_50m.tif", overwrite = TRUE)
 
 # calculate 50+ degree slopes distances
 slope50_distance <- distance(slope50, target = 1) # only calculate for cells = 1
 plot(slope50_distance)
-
-slope50_distance_50m <- slope50_distance #50m resolution, setting variable name so when importing it, its indicated for reference (avoid confusion)
+names(slope50_distance) <- "slope50degree_distance_50m" #50m resolution, renaming layer name so when importing it, its correct, its indicated for reference (avoid confusion)
+slope50_distance
 
 # writeRaster(d2slope50, file = "./data/environment/dist_to_slope_50degree_25m.tif", overwrite = TRUE)
-writeRaster(slope50_distance_50m, file = "./data/environment/slope50_distance_50m.tif", overwrite = TRUE)
+writeRaster(slope50_distance, file = "./data/environment/slope50degree_distance_50m.tif", overwrite = TRUE)
 
-
+rm(dem, slope, slope50, slope50_distance)
 
 #....................................................................
 # other resolutions ----
@@ -60,41 +59,40 @@ writeRaster(slope50_distance_50m, file = "./data/environment/slope50_distance_50
 # for sensitivity analysis, dont aggregate() the slope rasters, get slope for the dem raster that has been aggregate(), only using 1 dem raster but aggregating at different level, refer to the elevation_data.R script for more details
 
 # 100m resolution
-dem_100m <- rast("./data/environment/dem_100m.tif")
+dem <- rast("./data/environment/dem_100m.tif")
 # calculate slope of the terrain (in degrees)
-slope <- terrain(dem_100m, v = "slope", unit = "degrees")
+slope <- terrain(dem, v = "slope", unit = "degrees")
 plot(slope)
+
 # set 50+ degree slopes as 1 and below 50 as 0
 # slopes over 50 = a proxy-ish for escape terrain, but does not account for ruggedness
 slope50 <- ifel(slope >= 50, 1, 0) # ifel() specific to terra package
 plot(slope50)
-# not very many points
 
 # calculate 50+ degree slopes distances
-slope50_distance_100m <- distance(slope50, target = 1) # only calculate for cells = 1
-plot(slope50_distance_100m)
+slope50_distance <- distance(slope50, target = 1) # only calculate for cells = 1
+plot(slope50_distance)
+names(slope50_distance) <- "slope50degree_distance_100m" #100m resolution, renaming layer name so when importing it, its correct, its indicated for reference (avoid confusion)
+slope50_distance
 
-writeRaster(slope50_distance_100m, file = "./data/environment/slope50_distance_100m.tif", overwrite = TRUE)
+# writeRaster(d2slope50, file = "./data/environment/dist_to_slope_50degree_25m.tif", overwrite = TRUE)
+writeRaster(slope50_distance, file = "./data/environment/slope50degree_distance_100m.tif", overwrite = TRUE)
+
+rm(dem, slope, slope50, slope50_distance)
 
 #............................
 # 150m resolution
 
-dem_150m <- rast("./data/environment/dem_150m.tif")
+dem <- rast("./data/environment/dem_150m.tif")
 # calculate slope of the terrain (in degrees)
-slope <- terrain(dem_150m, v = "slope", unit = "degrees")
+slope <- terrain(dem, v = "slope", unit = "degrees")
 plot(slope)
+
 # set 50+ degree slopes as 1 and below 50 as 0
 # slopes over 50 = a proxy-ish for escape terrain, but does not account for ruggedness
 slope50 <- ifel(slope >= 50, 1, 0) # ifel() specific to terra package
 plot(slope50)
 # no points at all!!!!
-
-# 
-# # calculate 50+ degree slopes distances
-# slope50_distance_150m <- distance(slope50, target = 1) # only calculate for cells = 1
-# plot(slope50_distance_150m)
-# 
-# writeRaster(slope50_distance_150m, file = "./data/environment/slope50_distance_150m.tif", overwrite = TRUE)
 
 
 
