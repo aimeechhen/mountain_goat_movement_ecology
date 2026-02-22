@@ -46,7 +46,7 @@ options(scipen = 999)
 # webshot::install_phantomjs() # to save interactive leaflet map as an image
 
 # see function scripts for description of what each function does
-source('scripts/functions/plot_outlie_w_map.R')
+source('scripts/functions/plot_outlie.R')
 source('scripts/functions/outlie2.R') 
 source('scripts/functions/plot_movement_map.R')
 source('scripts/functions/plot_range.R')
@@ -91,14 +91,7 @@ cleaned_folder <- "./data/goat/outlie_filtering/cleaned/20260213/"
 # dir.create(outlie_folder, recursive = TRUE, showWarnings = TRUE)
 # dir.create(in_progress_folder, recursive = TRUE, showWarnings = TRUE)
 # dir.create(cleaned_folder, recursive = TRUE, showWarnings = TRUE)
-# dir.create("./data/goat/outlie_filtering/in_progress/", recursive = TRUE, showWarnings = TRUE)
-# dir.create("./data/goat/outlie_filtering/cleaned/", recursive = TRUE, showWarnings = TRUE)
 
-# # create a list to store all of the potential outliers (only once) redundant, dont actually need to, already update the flag outlier column as I go, keeping code for now and will probably delete code later
-# identified_list <- vector("list", 10)
-# # assign names to each item
-# names(identified_list) <- names(tel_data)
-# save(identified_list, file = paste0(in_progress_folder, "identified_list.rda"))
 
 
 #...................................................................................
@@ -180,7 +173,7 @@ saveRDS(out_data, file = paste0(in_progress_folder, goat_id, "_out_data.rds"))
 #/////////////////////////////////////////////////////////////
 
 # # set individual
-goat_id <- "CA07"
+goat_id <- "CA11"
 goat <- tel_data[[goat_id]]
 goat$individual.local.identifier <- goat_id
 
@@ -304,7 +297,7 @@ potential_outliers <- vector()
 # 60471 -> bad? leaving it, compared to other goats
 # 65413 -> bad? leaving it, compared to other goats
 # 60444 -> bad
-# 64695 -> leaving it, 12h interval, high dist but low speed, 179 turn
+# 64695 -> bad, 12h interval, high dist but low speed, 179 turn, no other fixes over there among all goats too
 # 60193 -> bad
 # 58453 -> bad
 # lesser obvious
@@ -314,7 +307,7 @@ potential_outliers <- vector()
 # 59316 -> leaving it, ca09 had similar fix location, could be both bad or actual fix, avoiding overcleaning
 # 64255 -> leaving it, 12.5 and 6.25h might be missing a fix inbetween, low speed
 # 61346 -> okay
-# potential_outliers <- c(63676, 58026, 60444, 60193, 58453)
+# potential_outliers <- c(63676, 58026, 60444, 64695, 60193, 58453)
 
 #............................
 ## CA12 goatileo  ----
@@ -322,14 +315,16 @@ potential_outliers <- vector()
 # obvious ones
 # 71414 -> leaving it, high dist, low speed 0.17m/s, 6.25 hr
 # 67909 -> bad? leaving it, comparing to other goats
-# 68480 -> bad? leaving it, similar behaviour a few days later and comparing to other goats, ca09 similar position and time
+# 68480 -> bad? leaving it, similar behaviour a couple days eariler but not as far, and comparing to other goats, ca09 similar position and time, starburst 
 # 68499 -> leaving it
 # 67219 -> bad
 # 67718 -> bad? leaving it, comparing to other goats position
-# 72039 -> leaving it, high dist, but low speed with 18.75 interval, 2 years later similar far fix
-# lesser obvious
+# 72039 -> bad, high dist, but low speed with 18.75 interval, looks like a bad fix and missing some inbetween but not going assume so removing
+# 67210 -> bad, removing it then comparing without this point makes more sense in terms of behavioural pattern, higher speed and over 4km in 4.5 hrs, even though within biological limits
 # 67040 -> leaving it
-potential_outliers <- c(67219)
+
+potential_outliers <- c(67219, 72039, 67210)
+
 
 #............................
 ## CA18 ryan_goatsling  ----
@@ -341,8 +336,8 @@ potential_outliers <- c(67219)
 # Examine potential outlier ----
 
 # 1b. look for outliers, plot & get outlie data
-poi_id <- 51160
-point_check <- plot_range(good_locations, fix_id = poi_id, limit = 10, palette = colour_pal)
+poi_id <- 72039
+point_check <- plot_range(good_locations, fix_id = poi_id, limit = 5, palette = colour_pal)
 # point_check <- plot_range(updated_locations, fix_id = poi_id, limit = 10, palette = colour_pal)
 # plot section
 movement_map(point_check$data_section, map_type = "Esri.WorldImagery")
@@ -382,7 +377,7 @@ beep(4)
 # 6. update flag_outlier column in the main df with the bad location estimates and potential outliers
 # out_data$flag_outlier <- ifelse(out_data$fix_id %in% bad_locations, 1, out_data$flag_outlier)
 out_data$flag_outlier <- ifelse(out_data$fix_id %in% c(bad_locations, potential_outliers), 1, out_data$flag_outlier)
-sum(out_data$flag_outlier) #5 + 3+ 2+ 0+ 4+ 3+ 3+ 7+ 1+ 1 = 29
+sum(out_data$flag_outlier) #5 + 3+ 2+ 0+ 4+ 3+ 3+ 8+ 3+ 1 = 31
 
 #.......................................................................
 cat(cyan("7. save cleaned data (tel data with bad locations dropped) and save outlie data with bad locations identified \n"))
@@ -399,40 +394,10 @@ saveRDS(updated_locations, file = paste0(cleaned_folder, goat_id, "_updated_loca
 saveRDS(out_data, file = paste0(cleaned_folder, goat_id, "_out_data_manual_checks.rds"))
 beep(4)
 
-# # update to the running list of potential_outliers (dont actually need this, to be deleted at next commit)
-# load(file = paste0(in_progress_folder, "identified_list.rda"))
-# identified_list[[goat_id]] <- c(bad_locations, potential_outliers)
-# # save updated list for next goat
-# save(identified_list, file = paste0(in_progress_folder, "identified_list.rda"))
-
 # move onto next goat, restart the process
 rm(cleaned_tracks, data_section, final_check, goat, good_locations, good_tracks, out, out_data, point_check, raw_tracks, recheck, updated_locations, bad_locations, poi_id, potential_outliers, test, test2, identified_list)
 gc()
 dev.off(dev.list()["RStudioGD"])
 
-
-
-
-#...................................................
-# Check clean data ----
-
-load(file = paste0(in_progress_folder, "identified_list.rda"))
-flag_fix_id <- do.call(c, identified_list)
-
-#...................................................
-
-
-# Load all out_data etc files within a folder including all the subfolders
-rds_files <- list.files(cleaned_folder, pattern = ".*out_data.*\\.rds$", full.names = TRUE)
-# Import/read all the files into a list
-rds_list <- lapply(rds_files, readRDS)
-# combine into df 
-out_df <- do.call(rbind, rds_list)
-
-sum(out_df$flag_outlier) #29
-
-save(out_df, file = paste0(cleaned_folder, "out_df.rda"))
-
-# go to visualize data script to plot to check if anything was missed
 
 
