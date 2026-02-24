@@ -77,11 +77,11 @@ for(i in 1:length(tel_data)){
   # Fit rsf
   RSF[[i]] <- rsf.fit(DATA, UD = akdes, R=r_list, trace = TRUE)
   
-  toc() # ~10.5, 16, 41 min each
+  toc() # ~10.5, 16, 41 min each, 70min
 }
 names(RSF) <- names(tel_data)
 
-toc() # ~12.55 hrs, combined = 8.8h, final 6.5h
+toc() # ~6.5h
 beep(3)
 
 END_rsf <- Sys.time()
